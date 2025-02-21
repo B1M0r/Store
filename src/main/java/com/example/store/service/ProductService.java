@@ -2,8 +2,9 @@ package com.example.store.service;
 
 import com.example.store.model.Product;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+
+
 
 /**
  * Сервис для работы с продуктами.
@@ -15,7 +16,6 @@ public class ProductService {
   private final List<Product> products = List.of(
           Product.builder().id(1).name("Laptop").category("Electronics").build(),
           Product.builder().id(2).name("Smartphone").category("Electronics").build(),
-          Product.builder().id(3).name("Tablet").category("Electronics").build(),
           Product.builder().id(4).name("T-Shirt").category("Clothing").build(),
           Product.builder().id(5).name("Jeans").category("Clothing").build()
   );
@@ -31,6 +31,6 @@ public class ProductService {
     return products.stream()
             .filter(product -> (category == null || product.getCategory()
                     .equalsIgnoreCase(category)) && (id == null || product.getId() == id))
-            .collect(Collectors.toList());
+            .toList();
   }
 }

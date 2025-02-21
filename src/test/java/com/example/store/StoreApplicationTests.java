@@ -8,6 +8,7 @@ class StoreApplicationTests {
 
 	@Test
 	void contextLoads() {
+		// EMPTY
 	}
 
 }

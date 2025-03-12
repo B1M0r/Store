@@ -1,36 +1,67 @@
 package com.example.store.service;
 
 import com.example.store.model.Product;
+import com.example.store.repository.ProductRepository;
 import java.util.List;
+import java.util.Optional;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-
-
 /**
- * Сервис для работы с продуктами.
- * Предоставляет методы для получения информации о продуктах.
+ * Сервис для управления сущностями {@link Product}.
+ * Предоставляет методы для выполнения операций с продуктами.
  */
 @Service
+@AllArgsConstructor
 public class ProductService {
 
-  private final List<Product> products = List.of(
-          Product.builder().id(1).name("Laptop").category("Electronics").build(),
-          Product.builder().id(2).name("Smartphone").category("Electronics").build(),
-          Product.builder().id(4).name("T-Shirt").category("Clothing").build(),
-          Product.builder().id(5).name("Jeans").category("Clothing").build()
-  );
+  private final ProductRepository productRepository;
 
   /**
-   * Возвращает список продуктов, отфильтрованных по категории и/или идентификатору.
+   * Поиск продуктов по категории и/или цене.
    *
    * @param category категория продукта (опционально)
-   * @param id идентификатор продукта (опционально)
-   * @return список продуктов, соответствующих критериям фильтрации
+   * @param price цена продукта (опционально)
+   * @return список продуктов, соответствующих критериям
    */
-  public List<Product> getProducts(String category, Integer id) {
-    return products.stream()
-            .filter(product -> (category == null || product.getCategory()
-                    .equalsIgnoreCase(category)) && (id == null || product.getId() == id))
-            .toList();
+  public List<Product> getProducts(String category, Integer price) {
+    if (category != null && price != null) {
+      return productRepository.findByCategoryAndPrice(category, price);
+    } else if (category != null) {
+      return productRepository.findByCategory(category);
+    } else if (price != null) {
+      return productRepository.findByPrice(price);
+    } else {
+      return productRepository.findAll();
+    }
+  }
+
+  /**
+   * Получить продукт по ID.
+   *
+   * @param id идентификатор продукта
+   * @return Optional, содержащий продукт, если он найден
+   */
+  public Optional<Product> getProductById(Long id) {
+    return productRepository.findById(id);
+  }
+
+  /**
+   * Сохранить продукт (создание или обновление).
+   *
+   * @param product данные продукта
+   * @return сохраненный продукт
+   */
+  public Product saveProduct(Product product) {
+    return productRepository.save(product);
+  }
+
+  /**
+   * Удалить продукт по ID.
+   *
+   * @param id идентификатор продукта
+   */
+  public void deleteProduct(Long id) {
+    productRepository.deleteById(id);
   }
 }

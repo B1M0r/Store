@@ -1,37 +1,67 @@
 package com.example.store.service;
 
 import com.example.store.model.Account;
+import com.example.store.repository.AccountRepository;
 import java.util.List;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Сервис для работы с аккаунтами пользователей.
- * Предоставляет методы для получения информации об аккаунтах.
+ * Сервис для управления сущностями {@link Account}.
+ * Предоставляет методы для выполнения операций с аккаунтами.
  */
 @Service
+@AllArgsConstructor
 public class AccountService {
-  private final List<Account> accounts = List.of(
-          Account.builder().nickname("B1M0r").firstName("Daniil")
-                  .lastName("Karasevich").email("tapelkabro@gmail.com").build(),
-          Account.builder().nickname("user1").firstName("Pavel")
-                  .lastName("Lasd").email("pasha@gmail.com").build()
-  );
 
-  // Метод для получения списка всех аккаунтов
+  private final AccountRepository accountRepository;
+
+  /**
+   * Получить все аккаунты.
+   *
+   * @return список всех аккаунтов
+   */
   public List<Account> getAccounts() {
-    return accounts;
+    return accountRepository.findAll();
   }
 
   /**
-   * Возвращает аккаунт по указанному nickname.
+   * Получить аккаунт по ID.
+   *
+   * @param id идентификатор аккаунта
+   * @return Optional, содержащий аккаунт, если он найден
+   */
+  public Optional<Account> getAccountById(Long id) {
+    return accountRepository.findById(id);
+  }
+
+  /**
+   * Получить аккаунт по nickname.
    *
    * @param nickname никнейм аккаунта
-   * @return Optional с аккаунтом, если он найден, или пустой Optional, если аккаунт не найден
+   * @return Optional, содержащий аккаунт, если он найден
    */
   public Optional<Account> getAccountByNickname(String nickname) {
-    return accounts.stream()
-            .filter(account -> account.getNickname().equals(nickname))
-            .findFirst();
+    return accountRepository.findByNickname(nickname);
+  }
+
+  /**
+   * Сохранить аккаунт (создание или обновление).
+   *
+   * @param account данные аккаунта
+   * @return сохраненный аккаунт
+   */
+  public Account saveAccount(Account account) {
+    return accountRepository.save(account);
+  }
+
+  /**
+   * Удалить аккаунт по ID.
+   *
+   * @param id идентификатор аккаунта
+   */
+  public void deleteAccount(Long id) {
+    accountRepository.deleteById(id);
   }
 }

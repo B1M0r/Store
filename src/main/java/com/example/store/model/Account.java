@@ -47,6 +47,5 @@ public class Account {
   private String email;
 
   @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-  //@JsonIgnore // Игнорируем обратную ссылку на Product
   private List<Product> products;
 }

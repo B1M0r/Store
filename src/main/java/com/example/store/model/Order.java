@@ -1,6 +1,5 @@
 package com.example.store.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,6 +56,6 @@ public class Order {
   )
   private List<Product> products;
 
-  @Transient // Поле не будет сохраняться в базе данных
+  @Transient
   private List<Long> productIds;
 }

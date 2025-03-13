@@ -40,7 +40,7 @@ Store API — это простое RESTful веб-приложение, раз�
 - Spring Boot
 - Lombok
 - Maven
-- PostgreSQL/MySQL (или другая база данных)
+- MySQL
 - JPA (Hibernate)
 - REST API
 

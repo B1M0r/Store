@@ -13,29 +13,27 @@ import org.springframework.data.repository.query.Param;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
   /**
-   * Найти продукты по категории.
+   * Найти продукты по категории и рейтингу (JPQL).
    *
    * @param category категория продукта
-   * @return список продуктов с указанной категорией
+   * @param rating рейтинг продукта
+   * @return список продуктов с указанной категорией и рейтингом
    */
-  List<Product> findByCategory(String category);
+  @Query("SELECT p FROM Product p WHERE p.category = :category AND p.rating = :rating")
+  List<Product> findByCategoryAndRating(
+          @Param("category") String category,
+          @Param("rating") double rating);
 
   /**
-   * Найти продукты по цене.
+   * Найти продукты по имени и цене (Native Query).
    *
+   * @param name название продукта
    * @param price цена продукта
-   * @return список продуктов с указанной ценой
+   * @return список продуктов с указанным именем и ценой
    */
-  List<Product> findByPrice(Integer price);
-
-  /**
-   * Найти продукты по категории и цене.
-   *
-   * @param category категория продукта
-   * @param price цена продукта
-   * @return список продуктов с указанной категорией и ценой
-   */
-  @Query("SELECT p FROM Product p WHERE p.category = :category AND p.price = :price")
-  List<Product> findByCategoryAndPrice(@Param("category") String category,
-                                       @Param("price") Integer price);
+  @Query(value = "SELECT * FROM products p WHERE p.name = :name AND p.price = :price",
+          nativeQuery = true)
+  List<Product> findByNameAndPriceNative(
+          @Param("name") String name,
+          @Param("price") int price);
 }

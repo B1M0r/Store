@@ -1,5 +1,6 @@
 package com.example.store.service;
 
+import com.example.store.cache.InMemoryCache;
 import com.example.store.model.Account;
 import com.example.store.repository.AccountRepository;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
   private final AccountRepository accountRepository;
+  private final InMemoryCache cache; // Внедряем кэш
 
   /**
    * Получить все аккаунты.
@@ -24,7 +26,17 @@ public class AccountService {
    * @return список всех аккаунтов
    */
   public List<Account> getAccounts() {
-    return accountRepository.findAll();
+    String cacheKey = "all_accounts";
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return (List<Account>) cache.get(cacheKey);
+    }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    List<Account> accounts = accountRepository.findAll();
+    cache.put(cacheKey, accounts); // Сохраняем в кэш
+    return accounts;
   }
 
   /**
@@ -34,7 +46,17 @@ public class AccountService {
    * @return Optional, содержащий аккаунт, если он найден
    */
   public Optional<Account> getAccountById(Long id) {
-    return accountRepository.findById(id);
+    String cacheKey = "account_" + id;
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return Optional.of((Account) cache.get(cacheKey));
+    }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    Optional<Account> account = accountRepository.findById(id);
+    account.ifPresent(acc -> cache.put(cacheKey, acc)); // Сохраняем в кэш
+    return account;
   }
 
   /**
@@ -44,7 +66,17 @@ public class AccountService {
    * @return Optional, содержащий аккаунт, если он найден
    */
   public Optional<Account> getAccountByNickname(String nickname) {
-    return accountRepository.findByNickname(nickname);
+    String cacheKey = "account_nickname_" + nickname;
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return Optional.of((Account) cache.get(cacheKey));
+    }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    Optional<Account> account = accountRepository.findByNickname(nickname);
+    account.ifPresent(acc -> cache.put(cacheKey, acc)); // Сохраняем в кэш
+    return account;
   }
 
   /**
@@ -54,7 +86,12 @@ public class AccountService {
    * @return сохраненный аккаунт
    */
   public Account saveAccount(Account account) {
-    return accountRepository.save(account);
+    Account savedAccount = accountRepository.save(account);
+    cache.remove("all_accounts"); // Очищаем кэш для всех аккаунтов
+    cache.remove("account_" + savedAccount.getId()); // Очищаем кэш для конкретного аккаунта
+    cache.remove("account_nickname_"
+            + savedAccount.getNickname()); // Очищаем кэш для аккаунта по никнейму
+    return savedAccount;
   }
 
   /**
@@ -72,5 +109,9 @@ public class AccountService {
     account.getOrders().clear(); // Удаляем все заказы, связанные с аккаунтом
 
     accountRepository.delete(account); // Удаляем аккаунт
+    cache.remove("all_accounts"); // Очищаем кэш для всех аккаунтов
+    cache.remove("account_" + id); // Очищаем кэш для конкретного аккаунта
+    cache.remove("account_nickname_"
+            + account.getNickname()); // Очищаем кэш для аккаунта по никнейму
   }
 }

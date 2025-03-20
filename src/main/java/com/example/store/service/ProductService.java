@@ -1,8 +1,7 @@
 package com.example.store.service;
 
-import com.example.store.model.Order;
+import com.example.store.cache.InMemoryCache;
 import com.example.store.model.Product;
-import com.example.store.repository.OrderRepository;
 import com.example.store.repository.ProductRepository;
 import java.util.List;
 import java.util.Optional;
@@ -19,25 +18,67 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
   private final ProductRepository productRepository;
-  private final OrderRepository orderRepository;
+  private final InMemoryCache cache; // Внедряем кэш
 
   /**
-   * Поиск продуктов по категории и/или цене.
+   * Получить все продукты.
    *
-   * @param category категория продукта (опционально)
-   * @param price цена продукта (опционально)
-   * @return список продуктов, соответствующих критериям
+   * @return список всех продуктов
    */
-  public List<Product> getProducts(String category, Integer price) {
-    if (category != null && price != null) {
-      return productRepository.findByCategoryAndPrice(category, price);
-    } else if (category != null) {
-      return productRepository.findByCategory(category);
-    } else if (price != null) {
-      return productRepository.findByPrice(price);
-    } else {
-      return productRepository.findAll();
+  public List<Product> getAllProducts() {
+    String cacheKey = "all_products";
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return (List<Product>) cache.get(cacheKey);
     }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    List<Product> products = productRepository.findAll();
+    cache.put(cacheKey, products); // Сохраняем в кэш
+    return products;
+  }
+
+  /**
+   * Найти продукты по категории и рейтингу (JPQL).
+   *
+   * @param category категория продукта
+   * @param rating рейтинг продукта
+   * @return список продуктов с указанной категорией и рейтингом
+   */
+  public List<Product> findByCategoryAndRating(String category, double rating) {
+    String cacheKey = "products_category_" + category + "_rating_" + rating;
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return (List<Product>) cache.get(cacheKey);
+    }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    List<Product> products = productRepository.findByCategoryAndRating(category, rating);
+    cache.put(cacheKey, products); // Сохраняем в кэш
+    return products;
+  }
+
+  /**
+   * Найти продукты по имени и цене (Native Query).
+   *
+   * @param name название продукта
+   * @param price цена продукта
+   * @return список продуктов с указанным именем и ценой
+   */
+  public List<Product> findByNameAndPriceNative(String name, int price) {
+    String cacheKey = "products_name_" + name + "_price_" + price;
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return (List<Product>) cache.get(cacheKey);
+    }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    List<Product> products = productRepository.findByNameAndPriceNative(name, price);
+    cache.put(cacheKey, products); // Сохраняем в кэш
+    return products;
   }
 
   /**
@@ -47,7 +88,17 @@ public class ProductService {
    * @return Optional, содержащий продукт, если он найден
    */
   public Optional<Product> getProductById(Long id) {
-    return productRepository.findById(id);
+    String cacheKey = "product_" + id;
+
+    // Проверяем кэш
+    if (cache.containsKey(cacheKey)) {
+      return Optional.of((Product) cache.get(cacheKey));
+    }
+
+    // Если данных нет в кэше, запрашиваем из базы
+    Optional<Product> product = productRepository.findById(id);
+    product.ifPresent(prod -> cache.put(cacheKey, prod)); // Сохраняем в кэш
+    return product;
   }
 
   /**
@@ -57,7 +108,10 @@ public class ProductService {
    * @return сохраненный продукт
    */
   public Product saveProduct(Product product) {
-    return productRepository.save(product);
+    Product savedProduct = productRepository.save(product);
+    cache.remove("all_products"); // Очищаем кэш для всех продуктов
+    cache.remove("product_" + savedProduct.getId()); // Очищаем кэш для конкретного продукта
+    return savedProduct;
   }
 
   /**
@@ -70,14 +124,8 @@ public class ProductService {
   public void deleteProduct(Long id) {
     Product product = productRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Product not found"));
-
-    // Удаляем продукт из всех заказов
-    List<Order> orders = orderRepository.findByProductsContaining(product);
-    for (Order order : orders) {
-      order.getProducts().remove(product); // Удаляем продукт из заказа
-      orderRepository.save(order); // Сохраняем обновлённый заказ
-    }
-
-    productRepository.delete(product); // Удаляем продукт
+    productRepository.delete(product);
+    cache.remove("all_products"); // Очищаем кэш для всех продуктов
+    cache.remove("product_" + id); // Очищаем кэш для конкретного продукта
   }
 }

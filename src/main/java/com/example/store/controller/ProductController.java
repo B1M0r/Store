@@ -29,25 +29,57 @@ public class ProductController {
   private final ProductService productService;
 
   /**
-   * Поиск продуктов по query-параметрам (категория и/или цена).
+   * Получить все продукты.
    *
-   * @param category категория продукта (опционально)
-   * @param price цена продукта (опционально)
-   * @return список продуктов, соответствующих критериям
-   * @throws ResponseStatusException если продукты не найдены
+   * @return список всех продуктов
    */
   @GetMapping
-  public List<Product> getProducts(
-          @RequestParam(value = "category", required = false) String category,
-          @RequestParam(value = "price", required = false) Integer price) {
-    List<Product> filteredProducts = productService.getProducts(category, price);
+  public List<Product> getAllProducts() {
+    return productService.getAllProducts();
+  }
 
-    if (filteredProducts.isEmpty()) {
+  /**
+   * Найти продукты по категории и рейтингу (JPQL).
+   *
+   * @param category категория продукта
+   * @param rating рейтинг продукта
+   * @return список продуктов с указанной категорией и рейтингом
+   * @throws ResponseStatusException если продукты не найдены
+   */
+  @GetMapping("/category-and-rating")
+  public List<Product> findByCategoryAndRating(
+          @RequestParam String category,
+          @RequestParam double rating) {
+    List<Product> products = productService.findByCategoryAndRating(category, rating);
+
+    if (products.isEmpty()) {
       throw new ResponseStatusException(HttpStatus
               .NOT_FOUND, "No products found with the specified criteria");
     }
 
-    return filteredProducts;
+    return products;
+  }
+
+  /**
+   * Найти продукты по имени и цене (Native Query).
+   *
+   * @param name название продукта
+   * @param price цена продукта
+   * @return список продуктов с указанным именем и ценой
+   * @throws ResponseStatusException если продукты не найдены
+   */
+  @GetMapping("/name-and-price")
+  public List<Product> findByNameAndPriceNative(
+          @RequestParam String name,
+          @RequestParam int price) {
+    List<Product> products = productService.findByNameAndPriceNative(name, price);
+
+    if (products.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus
+              .NOT_FOUND, "No products found with the specified criteria");
+    }
+
+    return products;
   }
 
   /**

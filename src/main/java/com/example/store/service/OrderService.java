@@ -21,6 +21,10 @@ import org.springframework.web.server.ResponseStatusException;
 @AllArgsConstructor
 public class OrderService {
 
+  private static final String CACHE_KEY_ALL_ORDERS = "all_orders";
+  private static final String CACHE_KEY_ORDER_PREFIX = "order_";
+  private static final String CACHE_KEY_ORDERS_ACCOUNT_PREFIX = "orders_account_";
+
   private final OrderRepository orderRepository;
   private final ProductRepository productRepository;
   private final AccountRepository accountRepository;
@@ -32,16 +36,14 @@ public class OrderService {
    * @return список всех заказов
    */
   public List<Order> getAllOrders() {
-    String cacheKey = "all_orders";
-
     // Проверяем кэш
-    if (cache.containsKey(cacheKey)) {
-      return (List<Order>) cache.get(cacheKey);
+    if (cache.containsKey(CACHE_KEY_ALL_ORDERS)) {
+      return (List<Order>) cache.get(CACHE_KEY_ALL_ORDERS);
     }
 
     // Если данных нет в кэше, запрашиваем из базы
     List<Order> orders = orderRepository.findAll();
-    cache.put(cacheKey, orders); // Сохраняем в кэш
+    cache.put(CACHE_KEY_ALL_ORDERS, orders); // Сохраняем в кэш
     return orders;
   }
 
@@ -53,7 +55,7 @@ public class OrderService {
    * @throws RuntimeException если заказ не найден
    */
   public Order getOrderById(Long id) {
-    String cacheKey = "order_" + id;
+    String cacheKey = CACHE_KEY_ORDER_PREFIX + id;
 
     // Проверяем кэш
     if (cache.containsKey(cacheKey)) {
@@ -75,7 +77,7 @@ public class OrderService {
    * @return список заказов для указанного аккаунта
    */
   public List<Order> getOrdersByAccountId(Long accountId) {
-    String cacheKey = "orders_account_" + accountId;
+    String cacheKey = CACHE_KEY_ORDERS_ACCOUNT_PREFIX + accountId;
 
     // Проверяем кэш
     if (cache.containsKey(cacheKey)) {
@@ -112,8 +114,8 @@ public class OrderService {
     order.setProducts(products);
 
     Order savedOrder = orderRepository.save(order);
-    cache.remove("all_orders"); // Очищаем кэш для всех заказов
-    cache.remove("orders_account_" + account.getId()); // Очищаем кэш для заказов аккаунта
+    cache.remove(CACHE_KEY_ALL_ORDERS); // Очищаем кэш для всех заказов
+    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX + account.getId()); // Очищаем кэш для заказов аккаунта
     return savedOrder;
   }
 
@@ -135,10 +137,9 @@ public class OrderService {
     order.setProducts(products);
 
     updatedOrder = orderRepository.save(order);
-    cache.remove("all_orders"); // Очищаем кэш для всех заказов
-    cache.remove("order_" + id); // Очищаем кэш для конкретного заказа
-    cache.remove("orders_account_"
-            + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
+    cache.remove(CACHE_KEY_ALL_ORDERS); // Очищаем кэш для всех заказов
+    cache.remove(CACHE_KEY_ORDER_PREFIX + id); // Очищаем кэш для конкретного заказа
+    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
     return updatedOrder;
   }
 
@@ -152,9 +153,8 @@ public class OrderService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus
                     .NOT_FOUND, "Order not found"));
     orderRepository.delete(order);
-    cache.remove("all_orders"); // Очищаем кэш для всех заказов
-    cache.remove("order_" + id); // Очищаем кэш для конкретного заказа
-    cache.remove("orders_account_"
-            + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
+    cache.remove(CACHE_KEY_ALL_ORDERS); // Очищаем кэш для всех заказов
+    cache.remove(CACHE_KEY_ORDER_PREFIX + id); // Очищаем кэш для конкретного заказа
+    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
   }
 }

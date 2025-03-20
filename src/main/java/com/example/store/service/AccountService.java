@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class AccountService {
 
+  private static final String CACHE_KEY_ALL_ACCOUNTS = "all_accounts";
+  private static final String CACHE_KEY_ACCOUNT_PREFIX = "account_";
+  private static final String CACHE_KEY_ACCOUNT_NICKNAME_PREFIX = "account_nickname_";
+
   private final AccountRepository accountRepository;
   private final InMemoryCache cache; // Внедряем кэш
 
@@ -26,16 +30,14 @@ public class AccountService {
    * @return список всех аккаунтов
    */
   public List<Account> getAccounts() {
-    String cacheKey = "all_accounts";
-
     // Проверяем кэш
-    if (cache.containsKey(cacheKey)) {
-      return (List<Account>) cache.get(cacheKey);
+    if (cache.containsKey(CACHE_KEY_ALL_ACCOUNTS)) {
+      return (List<Account>) cache.get(CACHE_KEY_ALL_ACCOUNTS);
     }
 
     // Если данных нет в кэше, запрашиваем из базы
     List<Account> accounts = accountRepository.findAll();
-    cache.put(cacheKey, accounts); // Сохраняем в кэш
+    cache.put(CACHE_KEY_ALL_ACCOUNTS, accounts); // Сохраняем в кэш
     return accounts;
   }
 
@@ -46,7 +48,7 @@ public class AccountService {
    * @return Optional, содержащий аккаунт, если он найден
    */
   public Optional<Account> getAccountById(Long id) {
-    String cacheKey = "account_" + id;
+    String cacheKey = CACHE_KEY_ACCOUNT_PREFIX + id;
 
     // Проверяем кэш
     if (cache.containsKey(cacheKey)) {
@@ -66,7 +68,7 @@ public class AccountService {
    * @return Optional, содержащий аккаунт, если он найден
    */
   public Optional<Account> getAccountByNickname(String nickname) {
-    String cacheKey = "account_nickname_" + nickname;
+    String cacheKey = CACHE_KEY_ACCOUNT_NICKNAME_PREFIX + nickname;
 
     // Проверяем кэш
     if (cache.containsKey(cacheKey)) {
@@ -87,10 +89,9 @@ public class AccountService {
    */
   public Account saveAccount(Account account) {
     Account savedAccount = accountRepository.save(account);
-    cache.remove("all_accounts"); // Очищаем кэш для всех аккаунтов
-    cache.remove("account_" + savedAccount.getId()); // Очищаем кэш для конкретного аккаунта
-    cache.remove("account_nickname_"
-            + savedAccount.getNickname()); // Очищаем кэш для аккаунта по никнейму
+    cache.remove(CACHE_KEY_ALL_ACCOUNTS); // Очищаем кэш для всех аккаунтов
+    cache.remove(CACHE_KEY_ACCOUNT_PREFIX + savedAccount.getId()); // Очищаем кэш для конкретного аккаунта
+    cache.remove(CACHE_KEY_ACCOUNT_NICKNAME_PREFIX + savedAccount.getNickname()); // Очищаем кэш для аккаунта по никнейму
     return savedAccount;
   }
 
@@ -109,9 +110,8 @@ public class AccountService {
     account.getOrders().clear(); // Удаляем все заказы, связанные с аккаунтом
 
     accountRepository.delete(account); // Удаляем аккаунт
-    cache.remove("all_accounts"); // Очищаем кэш для всех аккаунтов
-    cache.remove("account_" + id); // Очищаем кэш для конкретного аккаунта
-    cache.remove("account_nickname_"
-            + account.getNickname()); // Очищаем кэш для аккаунта по никнейму
+    cache.remove(CACHE_KEY_ALL_ACCOUNTS); // Очищаем кэш для всех аккаунтов
+    cache.remove(CACHE_KEY_ACCOUNT_PREFIX + id); // Очищаем кэш для конкретного аккаунта
+    cache.remove(CACHE_KEY_ACCOUNT_NICKNAME_PREFIX + account.getNickname()); // Очищаем кэш для аккаунта по никнейму
   }
 }

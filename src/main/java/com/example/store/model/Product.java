@@ -1,6 +1,7 @@
 package com.example.store.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,7 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Класс, представляющий сущность "Продукт".
+ * Сущность, представляющая продукт.
  * Продукт содержит информацию о названии, цене, категории и связан с аккаунтом и заказами.
  */
 @Entity
@@ -45,9 +46,10 @@ public class Product {
 
   @ManyToOne
   @JoinColumn(name = "account_id")
+  @JsonIgnoreProperties({"products", "orders"}) // Игнорируем зацикливание
   private Account account;
 
   @ManyToMany(mappedBy = "products")
-  @JsonIgnore
+  @JsonIgnoreProperties({"account", "products"}) // Игнорируем зацикливание
   private List<Order> orders;
 }

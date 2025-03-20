@@ -1,11 +1,14 @@
 package com.example.store.service;
 
+import com.example.store.model.Order;
 import com.example.store.model.Product;
+import com.example.store.repository.OrderRepository;
 import com.example.store.repository.ProductRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Сервис для управления сущностями {@link Product}.
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class ProductService {
 
   private final ProductRepository productRepository;
+  private final OrderRepository orderRepository;
 
   /**
    * Поиск продуктов по категории и/или цене.
@@ -60,8 +64,20 @@ public class ProductService {
    * Удалить продукт по ID.
    *
    * @param id идентификатор продукта
+   * @throws RuntimeException если продукт не найден
    */
+  @Transactional
   public void deleteProduct(Long id) {
-    productRepository.deleteById(id);
+    Product product = productRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Product not found"));
+
+    // Удаляем продукт из всех заказов
+    List<Order> orders = orderRepository.findByProductsContaining(product);
+    for (Order order : orders) {
+      order.getProducts().remove(product); // Удаляем продукт из заказа
+      orderRepository.save(order); // Сохраняем обновлённый заказ
+    }
+
+    productRepository.delete(product); // Удаляем продукт
   }
 }

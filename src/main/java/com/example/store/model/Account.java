@@ -1,5 +1,7 @@
 package com.example.store.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,9 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Класс, представляющий сущность "Аккаунт".
+ * Сущность, представляющая аккаунт пользователя.
  * Аккаунт содержит информацию о пользователе, такую как никнейм, имя, фамилия и email.
- * Также аккаунт может быть связан с несколькими продуктами через отношение "один ко многим".
  */
 @Entity
 @Table(name = "accounts")
@@ -46,6 +47,15 @@ public class Account {
   @Column(unique = true, nullable = false)
   private String email;
 
+  @OneToMany(
+          mappedBy = "account",
+          cascade = CascadeType.ALL,
+          fetch = FetchType.LAZY,
+          orphanRemoval = true)
+  @JsonManagedReference
+  private List<Order> orders;
+
   @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @JsonIgnore
   private List<Product> products;
 }

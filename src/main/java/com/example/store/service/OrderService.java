@@ -42,7 +42,8 @@ public class OrderService {
    */
   public Order getOrderById(Long id) {
     return orderRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Order not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus
+                    .NOT_FOUND, "Order not found"));
   }
 
   /**

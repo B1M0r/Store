@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Сервис для управления сущностями {@link Account}.
@@ -37,7 +38,7 @@ public class AccountService {
   }
 
   /**
-   * Получить аккаунт по nickname.
+   * Получить аккаунт по никнейму.
    *
    * @param nickname никнейм аккаунта
    * @return Optional, содержащий аккаунт, если он найден
@@ -60,8 +61,16 @@ public class AccountService {
    * Удалить аккаунт по ID.
    *
    * @param id идентификатор аккаунта
+   * @throws RuntimeException если аккаунт не найден
    */
+  @Transactional
   public void deleteAccount(Long id) {
-    accountRepository.deleteById(id);
+    Account account = accountRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Account not found"));
+
+    // Каскадное удаление заказов
+    account.getOrders().clear(); // Удаляем все заказы, связанные с аккаунтом
+
+    accountRepository.delete(account); // Удаляем аккаунт
   }
 }

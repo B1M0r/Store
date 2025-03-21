@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,50 +35,6 @@ public class ProductController {
   @GetMapping
   public List<Product> getAllProducts() {
     return productService.getAllProducts();
-  }
-
-  /**
-   * Найти продукты по категории и рейтингу (JPQL).
-   *
-   * @param category категория продукта
-   * @param rating рейтинг продукта
-   * @return список продуктов с указанной категорией и рейтингом
-   * @throws ResponseStatusException если продукты не найдены
-   */
-  @GetMapping("/category-and-rating")
-  public List<Product> findByCategoryAndRating(
-          @RequestParam String category,
-          @RequestParam double rating) {
-    List<Product> products = productService.findByCategoryAndRating(category, rating);
-
-    if (products.isEmpty()) {
-      throw new ResponseStatusException(HttpStatus
-              .NOT_FOUND, "No products found with the specified criteria");
-    }
-
-    return products;
-  }
-
-  /**
-   * Найти продукты по имени и цене (Native Query).
-   *
-   * @param name название продукта
-   * @param price цена продукта
-   * @return список продуктов с указанным именем и ценой
-   * @throws ResponseStatusException если продукты не найдены
-   */
-  @GetMapping("/name-and-price")
-  public List<Product> findByNameAndPriceNative(
-          @RequestParam String name,
-          @RequestParam int price) {
-    List<Product> products = productService.findByNameAndPriceNative(name, price);
-
-    if (products.isEmpty()) {
-      throw new ResponseStatusException(HttpStatus
-              .NOT_FOUND, "No products found with the specified criteria");
-    }
-
-    return products;
   }
 
   /**

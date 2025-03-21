@@ -19,8 +19,6 @@ public class ProductService {
 
   private static final String CACHE_KEY_ALL_PRODUCTS = "all_products";
   private static final String CACHE_KEY_PRODUCT_PREFIX = "product_";
-  private static final String CACHE_KEY_PRODUCTS_CATEGORY_RATING_PREFIX = "products_category_";
-  private static final String CACHE_KEY_PRODUCTS_NAME_PRICE_PREFIX = "products_name_";
 
   private final ProductRepository productRepository;
   private final InMemoryCache cache; // Внедряем кэш
@@ -39,48 +37,6 @@ public class ProductService {
     // Если данных нет в кэше, запрашиваем из базы
     List<Product> products = productRepository.findAll();
     cache.put(CACHE_KEY_ALL_PRODUCTS, products); // Сохраняем в кэш
-    return products;
-  }
-
-  /**
-   * Найти продукты по категории и рейтингу (JPQL).
-   *
-   * @param category категория продукта
-   * @param rating рейтинг продукта
-   * @return список продуктов с указанной категорией и рейтингом
-   */
-  public List<Product> findByCategoryAndRating(String category, double rating) {
-    String cacheKey = CACHE_KEY_PRODUCTS_CATEGORY_RATING_PREFIX + category + "_rating_" + rating;
-
-    // Проверяем кэш
-    if (cache.containsKey(cacheKey)) {
-      return (List<Product>) cache.get(cacheKey);
-    }
-
-    // Если данных нет в кэше, запрашиваем из базы
-    List<Product> products = productRepository.findByCategoryAndRating(category, rating);
-    cache.put(cacheKey, products); // Сохраняем в кэш
-    return products;
-  }
-
-  /**
-   * Найти продукты по имени и цене (Native Query).
-   *
-   * @param name название продукта
-   * @param price цена продукта
-   * @return список продуктов с указанным именем и ценой
-   */
-  public List<Product> findByNameAndPriceNative(String name, int price) {
-    String cacheKey = CACHE_KEY_PRODUCTS_NAME_PRICE_PREFIX + name + "_price_" + price;
-
-    // Проверяем кэш
-    if (cache.containsKey(cacheKey)) {
-      return (List<Product>) cache.get(cacheKey);
-    }
-
-    // Если данных нет в кэше, запрашиваем из базы
-    List<Product> products = productRepository.findByNameAndPriceNative(name, price);
-    cache.put(cacheKey, products); // Сохраняем в кэш
     return products;
   }
 
@@ -113,7 +69,8 @@ public class ProductService {
   public Product saveProduct(Product product) {
     Product savedProduct = productRepository.save(product);
     cache.remove(CACHE_KEY_ALL_PRODUCTS); // Очищаем кэш для всех продуктов
-    cache.remove(CACHE_KEY_PRODUCT_PREFIX + savedProduct.getId()); // Очищаем кэш для конкретного продукта
+    cache.remove(CACHE_KEY_PRODUCT_PREFIX
+            + savedProduct.getId()); // Очищаем кэш для конкретного продукта
     return savedProduct;
   }
 

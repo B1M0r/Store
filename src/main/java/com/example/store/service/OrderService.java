@@ -115,7 +115,8 @@ public class OrderService {
 
     Order savedOrder = orderRepository.save(order);
     cache.remove(CACHE_KEY_ALL_ORDERS); // Очищаем кэш для всех заказов
-    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX + account.getId()); // Очищаем кэш для заказов аккаунта
+    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX
+            + account.getId()); // Очищаем кэш для заказов аккаунта
     return savedOrder;
   }
 
@@ -138,8 +139,10 @@ public class OrderService {
 
     updatedOrder = orderRepository.save(order);
     cache.remove(CACHE_KEY_ALL_ORDERS); // Очищаем кэш для всех заказов
-    cache.remove(CACHE_KEY_ORDER_PREFIX + id); // Очищаем кэш для конкретного заказа
-    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
+    cache.remove(CACHE_KEY_ORDER_PREFIX
+            + id); // Очищаем кэш для конкретного заказа
+    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX
+            + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
     return updatedOrder;
   }
 
@@ -155,6 +158,27 @@ public class OrderService {
     orderRepository.delete(order);
     cache.remove(CACHE_KEY_ALL_ORDERS); // Очищаем кэш для всех заказов
     cache.remove(CACHE_KEY_ORDER_PREFIX + id); // Очищаем кэш для конкретного заказа
-    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
+    cache.remove(CACHE_KEY_ORDERS_ACCOUNT_PREFIX
+            + order.getAccount().getId()); // Очищаем кэш для заказов аккаунта
+  }
+
+  /**
+   * Получить заказы по ID продукта с использованием JPQL запроса.
+   *
+   * @param productId идентификатор продукта
+   * @return список заказов, содержащих указанный продукт
+   */
+  public List<Order> getOrdersByProductIdJpql(Long productId) {
+    return orderRepository.findOrdersByProductIdJpql(productId);
+  }
+
+  /**
+   * Получить заказы по ID продукта с использованием нативного SQL запроса.
+   *
+   * @param productId идентификатор продукта
+   * @return список заказов, содержащих указанный продукт
+   */
+  public List<Order> getOrdersByProductIdNative(Long productId) {
+    return orderRepository.findOrdersByProductIdNative(productId);
   }
 }

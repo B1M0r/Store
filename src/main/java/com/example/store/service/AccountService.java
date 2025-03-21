@@ -90,8 +90,10 @@ public class AccountService {
   public Account saveAccount(Account account) {
     Account savedAccount = accountRepository.save(account);
     cache.remove(CACHE_KEY_ALL_ACCOUNTS); // Очищаем кэш для всех аккаунтов
-    cache.remove(CACHE_KEY_ACCOUNT_PREFIX + savedAccount.getId()); // Очищаем кэш для конкретного аккаунта
-    cache.remove(CACHE_KEY_ACCOUNT_NICKNAME_PREFIX + savedAccount.getNickname()); // Очищаем кэш для аккаунта по никнейму
+    cache.remove(CACHE_KEY_ACCOUNT_PREFIX
+            + savedAccount.getId()); // Очищаем кэш для конкретного аккаунта
+    cache.remove(CACHE_KEY_ACCOUNT_NICKNAME_PREFIX
+            + savedAccount.getNickname()); // Очищаем кэш для аккаунта по никнейму
     return savedAccount;
   }
 
@@ -112,6 +114,7 @@ public class AccountService {
     accountRepository.delete(account); // Удаляем аккаунт
     cache.remove(CACHE_KEY_ALL_ACCOUNTS); // Очищаем кэш для всех аккаунтов
     cache.remove(CACHE_KEY_ACCOUNT_PREFIX + id); // Очищаем кэш для конкретного аккаунта
-    cache.remove(CACHE_KEY_ACCOUNT_NICKNAME_PREFIX + account.getNickname()); // Очищаем кэш для аккаунта по никнейму
+    cache.remove(CACHE_KEY_ACCOUNT_NICKNAME_PREFIX
+            + account.getNickname()); // Очищаем кэш для аккаунта по никнейму
   }
 }

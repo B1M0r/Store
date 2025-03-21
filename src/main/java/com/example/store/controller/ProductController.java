@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,13 +29,25 @@ public class ProductController {
   private final ProductService productService;
 
   /**
-   * Получить все продукты.
+   * Поиск продуктов по query-параметрам (категория и/или цена).
    *
-   * @return список всех продуктов
+   * @param category категория продукта (опционально)
+   * @param price цена продукта (опционально)
+   * @return список продуктов, соответствующих критериям
+   * @throws ResponseStatusException если продукты не найдены
    */
   @GetMapping
-  public List<Product> getAllProducts() {
-    return productService.getAllProducts();
+  public List<Product> getProducts(
+          @RequestParam(value = "category", required = false) String category,
+          @RequestParam(value = "price", required = false) Integer price) {
+    List<Product> filteredProducts = productService.getProducts(category, price);
+
+    if (filteredProducts.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus
+              .NOT_FOUND, "No products found with the specified criteria");
+    }
+
+    return filteredProducts;
   }
 
   /**

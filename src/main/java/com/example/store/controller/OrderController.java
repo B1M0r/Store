@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -101,27 +100,5 @@ public class OrderController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void deleteOrder(@PathVariable Long id) {
     orderService.deleteOrder(id);
-  }
-
-  /**
-   * Получить заказы по ID продукта с использованием JPQL запроса.
-   *
-   * @param productId идентификатор продукта
-   * @return список заказов, содержащих указанный продукт
-   */
-  @GetMapping("/by-product-jpql")
-  public List<Order> getOrdersByProductJpql(@RequestParam Long productId) {
-    return orderService.getOrdersByProductIdJpql(productId);
-  }
-
-  /**
-   * Получить заказы по ID продукта с использованием нативного SQL запроса.
-   *
-   * @param productId идентификатор продукта
-   * @return список заказов, содержащих указанный продукт
-   */
-  @GetMapping("/by-product-native")
-  public List<Order> getOrdersByProductNative(@RequestParam Long productId) {
-    return orderService.getOrdersByProductIdNative(productId);
   }
 }

@@ -1,7 +1,8 @@
 package com.example.store.service;
 
-import com.example.store.cache.InMemoryCache;
+import com.example.store.model.Order;
 import com.example.store.model.Product;
+import com.example.store.repository.OrderRepository;
 import com.example.store.repository.ProductRepository;
 import java.util.List;
 import java.util.Optional;
@@ -17,27 +18,26 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class ProductService {
 
-  private static final String CACHE_KEY_ALL_PRODUCTS = "all_products";
-  private static final String CACHE_KEY_PRODUCT_PREFIX = "product_";
-
   private final ProductRepository productRepository;
-  private final InMemoryCache cache; // Внедряем кэш
+  private final OrderRepository orderRepository;
 
   /**
-   * Получить все продукты.
+   * Поиск продуктов по категории и/или цене.
    *
-   * @return список всех продуктов
+   * @param category категория продукта (опционально)
+   * @param price цена продукта (опционально)
+   * @return список продуктов, соответствующих критериям
    */
-  public List<Product> getAllProducts() {
-    // Проверяем кэш
-    if (cache.containsKey(CACHE_KEY_ALL_PRODUCTS)) {
-      return (List<Product>) cache.get(CACHE_KEY_ALL_PRODUCTS);
+  public List<Product> getProducts(String category, Integer price) {
+    if (category != null && price != null) {
+      return productRepository.findByCategoryAndPrice(category, price);
+    } else if (category != null) {
+      return productRepository.findByCategory(category);
+    } else if (price != null) {
+      return productRepository.findByPrice(price);
+    } else {
+      return productRepository.findAll();
     }
-
-    // Если данных нет в кэше, запрашиваем из базы
-    List<Product> products = productRepository.findAll();
-    cache.put(CACHE_KEY_ALL_PRODUCTS, products); // Сохраняем в кэш
-    return products;
   }
 
   /**
@@ -47,17 +47,7 @@ public class ProductService {
    * @return Optional, содержащий продукт, если он найден
    */
   public Optional<Product> getProductById(Long id) {
-    String cacheKey = CACHE_KEY_PRODUCT_PREFIX + id;
-
-    // Проверяем кэш
-    if (cache.containsKey(cacheKey)) {
-      return Optional.of((Product) cache.get(cacheKey));
-    }
-
-    // Если данных нет в кэше, запрашиваем из базы
-    Optional<Product> product = productRepository.findById(id);
-    product.ifPresent(prod -> cache.put(cacheKey, prod)); // Сохраняем в кэш
-    return product;
+    return productRepository.findById(id);
   }
 
   /**
@@ -67,11 +57,7 @@ public class ProductService {
    * @return сохраненный продукт
    */
   public Product saveProduct(Product product) {
-    Product savedProduct = productRepository.save(product);
-    cache.remove(CACHE_KEY_ALL_PRODUCTS); // Очищаем кэш для всех продуктов
-    cache.remove(CACHE_KEY_PRODUCT_PREFIX
-            + savedProduct.getId()); // Очищаем кэш для конкретного продукта
-    return savedProduct;
+    return productRepository.save(product);
   }
 
   /**
@@ -84,8 +70,15 @@ public class ProductService {
   public void deleteProduct(Long id) {
     Product product = productRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Product not found"));
-    productRepository.delete(product);
-    cache.remove(CACHE_KEY_ALL_PRODUCTS); // Очищаем кэш для всех продуктов
-    cache.remove(CACHE_KEY_PRODUCT_PREFIX + id); // Очищаем кэш для конкретного продукта
+
+    // Удаляем продукт из всех заказов
+    List<Order> orders = orderRepository.findByProductsContaining(product);
+    for (Order order : orders) {
+      order.getProducts().remove(product); // Удаляем продукт из заказа
+      orderRepository.save(order); // Сохраняем обновлённый заказ
+    }
+
+    productRepository.delete(product); // Удаляем продукт
   }
+
 }

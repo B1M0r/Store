@@ -19,7 +19,7 @@ import lombok.Setter;
 
 /**
  * Сущность, представляющая продукт.
- * Продукт содержит информацию о названии, цене, категории, рейтинге.
+ * Продукт содержит информацию о названии, цене, категории и связан с аккаунтом и заказами.
  */
 @Entity
 @Table(name = "products")
@@ -42,9 +42,6 @@ public class Product {
 
   @Column(nullable = false)
   private String category;
-
-  @Column(nullable = false)
-  private double rating; // Новое поле: рейтинг продукта
 
   @ManyToOne
   @JoinColumn(name = "account_id")

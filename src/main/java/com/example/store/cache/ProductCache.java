@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductCache {
 
-  private final Map<Long, Product> productCache = new ConcurrentHashMap<>();
+  private final Map<Long, Product> cacheProduct = new ConcurrentHashMap<>();
 
   /**
    * Получить продукт из кэша по идентификатору.
@@ -22,7 +22,7 @@ public class ProductCache {
    * @return продукт или null, если не найден
    */
   public Product get(Long id) {
-    return productCache.get(id);
+    return cacheProduct.get(id);
   }
 
   /**
@@ -32,7 +32,7 @@ public class ProductCache {
    */
   public void put(Product product) {
     if (product != null && product.getId() != null) {
-      productCache.put(product.getId(), product);
+      cacheProduct.put(product.getId(), product);
     }
   }
 
@@ -42,7 +42,7 @@ public class ProductCache {
    * @param id идентификатор продукта для удаления
    */
   public void remove(Long id) {
-    productCache.remove(id);
+    cacheProduct.remove(id);
   }
 
   /**
@@ -51,6 +51,6 @@ public class ProductCache {
    * @return количество элементов в кэше
    */
   public int size() {
-    return productCache.size();
+    return cacheProduct.size();
   }
 }

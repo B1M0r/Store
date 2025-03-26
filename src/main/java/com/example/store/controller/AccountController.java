@@ -52,20 +52,6 @@ public class AccountController {
   }
 
   /**
-   * Получить аккаунт по nickname.
-   *
-   * @param nickname никнейм аккаунта
-   * @return аккаунт с указанным nickname
-   * @throws ResponseStatusException если аккаунт не найден
-   */
-  @GetMapping("/nickname/{nickname}")
-  public Account getAccountByNickname(@PathVariable String nickname) {
-    return accountService.getAccountByNickname(nickname)
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Account not found"));
-  }
-
-  /**
    * Создать новый аккаунт.
    *
    * @param account данные аккаунта

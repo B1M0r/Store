@@ -1,6 +1,6 @@
 package com.example.store.service;
 
-import com.example.store.model.Order;
+import com.example.store.cache.ProductCache;
 import com.example.store.model.Product;
 import com.example.store.repository.OrderRepository;
 import com.example.store.repository.ProductRepository;
@@ -11,8 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для управления сущностями {@link Product}.
- * Предоставляет методы для выполнения операций с продуктами.
+ * Сервис для работы с продуктами.
+ *
+ * <p>Предоставляет методы для поиска, сохранения и удаления продуктов с поддержкой кэширования.
  */
 @Service
 @AllArgsConstructor
@@ -20,9 +21,10 @@ public class ProductService {
 
   private final ProductRepository productRepository;
   private final OrderRepository orderRepository;
+  private final ProductCache productCache;
 
   /**
-   * Поиск продуктов по категории и/или цене.
+   * Получает список продуктов с возможностью фильтрации по категории и/или цене.
    *
    * @param category категория продукта (опционально)
    * @param price цена продукта (опционально)
@@ -35,35 +37,50 @@ public class ProductService {
       return productRepository.findByCategory(category);
     } else if (price != null) {
       return productRepository.findByPrice(price);
-    } else {
-      return productRepository.findAll();
     }
+    return productRepository.findAll();
   }
 
   /**
-   * Получить продукт по ID.
+   * Находит продукт по идентификатору с использованием кэша.
    *
    * @param id идентификатор продукта
-   * @return Optional, содержащий продукт, если он найден
+   * @return Optional с продуктом, если найден
    */
   public Optional<Product> getProductById(Long id) {
-    return productRepository.findById(id);
+    // Сначала ищем в кэше
+    Product cachedProduct = productCache.get(id);
+    if (cachedProduct != null) {
+      return Optional.of(cachedProduct);
+    }
+
+    // Если в кэше нет, получаем из БД
+    Optional<Product> product = productRepository.findById(id);
+
+    // Если нашли, кладем в кэш
+    product.ifPresent(productCache::put);
+
+    return product;
   }
 
   /**
-   * Сохранить продукт (создание или обновление).
+   * Сохраняет продукт в БД и обновляет кэш.
    *
-   * @param product данные продукта
+   * @param product продукт для сохранения
    * @return сохраненный продукт
    */
   public Product saveProduct(Product product) {
-    return productRepository.save(product);
+    Product savedProduct = productRepository.save(product);
+    productCache.put(savedProduct); // Обновляем кэш
+    return savedProduct;
   }
 
   /**
-   * Удалить продукт по ID.
+   * Удаляет продукт по идентификатору.
    *
-   * @param id идентификатор продукта
+   * <p>Удаляет продукт из всех заказов, БД и кэша.
+   *
+   * @param id идентификатор продукта для удаления
    * @throws RuntimeException если продукт не найден
    */
   @Transactional
@@ -72,13 +89,12 @@ public class ProductService {
             .orElseThrow(() -> new RuntimeException("Product not found"));
 
     // Удаляем продукт из всех заказов
-    List<Order> orders = orderRepository.findByProductsContaining(product);
-    for (Order order : orders) {
-      order.getProducts().remove(product); // Удаляем продукт из заказа
-      orderRepository.save(order); // Сохраняем обновлённый заказ
-    }
+    orderRepository.findByProductsContaining(product).forEach(order -> {
+      order.getProducts().remove(product);
+      orderRepository.save(order);
+    });
 
-    productRepository.delete(product); // Удаляем продукт
+    productRepository.delete(product);
+    productCache.remove(id); // Удаляем из кэша
   }
-
 }

@@ -14,7 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Сервис для управления сущностями {@link Order}.
- * Предоставляет методы для выполнения операций с заказами.
+ *
+ * <p>Предоставляет методы для выполнения операций с заказами.
  */
 @Service
 @AllArgsConstructor
@@ -42,7 +43,8 @@ public class OrderService {
    */
   public Order getOrderById(Long id) {
     return orderRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Order not found"));
   }
 
   /**
@@ -63,31 +65,24 @@ public class OrderService {
    * @throws ResponseStatusException если не указан ID аккаунта или не найдены продукты
    */
   public Order createOrder(Order order) {
-    // Проверка наличия ID аккаунта
     if (order.getAccount() == null || order.getAccount().getId() == null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account ID is required");
+      throw new ResponseStatusException(
+              HttpStatus.BAD_REQUEST, "Account ID is required");
     }
 
-    // Поиск аккаунта в базе данных
     Account account = accountRepository.findById(order.getAccount().getId())
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found with id: " + order.getAccount().getId()));
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Account not found with id: "
+                    + order.getAccount().getId()));
     order.setAccount(account);
 
-    // Проверка наличия productIds
-    if (order.getProductIds() == null || order.getProductIds().isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product IDs are required");
-    }
-
-    // Поиск продуктов по их ID
     List<Product> products = productRepository.findAllById(order.getProductIds());
     if (products.size() != order.getProductIds().size()) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more products not found");
+      throw new ResponseStatusException(
+              HttpStatus.NOT_FOUND, "One or more products not found");
     }
-
-    // Установка списка продуктов в заказ
     order.setProducts(products);
 
-    // Сохранение заказа в базе данных
     return orderRepository.save(order);
   }
 
@@ -100,28 +95,14 @@ public class OrderService {
    * @throws ResponseStatusException если не найдены продукты
    */
   public Order updateOrder(Long id, Order order) {
-    // Проверка наличия productIds
-    if (order.getProductIds() == null || order.getProductIds().isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product IDs are required");
-    }
-
-    // Поиск продуктов по их ID
     List<Product> products = productRepository.findAllById(order.getProductIds());
     if (products.size() != order.getProductIds().size()) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more products not found");
+      throw new ResponseStatusException(
+              HttpStatus.NOT_FOUND, "One or more products not found");
     }
-
-    // Поиск существующего заказа
-    Order existingOrder = orderRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
-
-    // Обновление данных заказа
-    existingOrder.setOrderDate(order.getOrderDate());
-    existingOrder.setTotalPrice(order.getTotalPrice());
-    existingOrder.setProducts(products);
-
-    // Сохранение обновленного заказа
-    return orderRepository.save(existingOrder);
+    order.setId(id);
+    order.setProducts(products);
+    return orderRepository.save(order);
   }
 
   /**
@@ -131,5 +112,37 @@ public class OrderService {
    */
   public void deleteOrder(Long id) {
     orderRepository.deleteById(id);
+  }
+
+  /**
+   * Найти заказы по категории продукта (JPQL).
+   *
+   * @param category категория продукта
+   * @return список заказов, содержащих продукты указанной категории
+   * @throws ResponseStatusException если заказы не найдены
+   */
+  public List<Order> getOrdersByProductCategoryJpql(String category) {
+    List<Order> orders = orderRepository.findOrdersByProductCategoryJpql(category);
+    if (orders.isEmpty()) {
+      throw new ResponseStatusException(
+              HttpStatus.NOT_FOUND, "Orders with category '" + category + "' not found");
+    }
+    return orders;
+  }
+
+  /**
+   * Найти заказы по цене продукта (Native Query).
+   *
+   * @param price цена продукта
+   * @return список заказов, содержащих продукты с указанной ценой
+   * @throws ResponseStatusException если заказы не найдены
+   */
+  public List<Order> getOrdersByProductPriceNative(Integer price) {
+    List<Order> orders = orderRepository.findOrdersByProductPriceNative(price);
+    if (orders.isEmpty()) {
+      throw new ResponseStatusException(
+              HttpStatus.NOT_FOUND, "Orders with product price " + price + " not found");
+    }
+    return orders;
   }
 }

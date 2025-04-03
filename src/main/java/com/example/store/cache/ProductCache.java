@@ -3,6 +3,7 @@ package com.example.store.cache;
 import com.example.store.model.Product;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Реализует thread-safe хранение продуктов с базовыми операциями кэширования.
  */
+@Slf4j
 @Component
 public class ProductCache {
 
@@ -22,6 +24,7 @@ public class ProductCache {
    * @return продукт или null, если не найден
    */
   public Product get(Long id) {
+    log.info("Get product by id: {}", id);
     return cacheProduct.get(id);
   }
 
@@ -32,6 +35,7 @@ public class ProductCache {
    */
   public void put(Product product) {
     if (product != null && product.getId() != null) {
+      log.info("Put product: {}", product);
       cacheProduct.put(product.getId(), product);
     }
   }
@@ -42,6 +46,7 @@ public class ProductCache {
    * @param id идентификатор продукта для удаления
    */
   public void remove(Long id) {
+    log.info("Remove product: {}", id);
     cacheProduct.remove(id);
   }
 

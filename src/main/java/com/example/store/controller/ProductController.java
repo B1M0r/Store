@@ -1,10 +1,19 @@
 package com.example.store.controller;
 
+import com.example.store.exception.ResourceNotFoundException;
 import com.example.store.model.Product;
 import com.example.store.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,90 +22,165 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Контроллер для управления сущностями "Продукт".
- * Предоставляет REST API для выполнения CRUD-операций с продуктами.
+ * Контроллер для управления продуктами.
+ * Предоставляет REST API для выполнения операций CRUD с сущностью {@link Product}.
  */
 @RestController
 @RequestMapping("/api/products")
 @AllArgsConstructor
+@Tag(name = "Product Controller", description = "API для управления продуктами")
 public class ProductController {
 
   private final ProductService productService;
 
   /**
-   * Поиск продуктов по query-параметрам (категория и/или цена).
+   * Получает список продуктов с возможностью фильтрации.
    *
-   * @param category категория продукта (опционально)
-   * @param price цена продукта (опционально)
-   * @return список продуктов, соответствующих критериям
-   * @throws ResponseStatusException если продукты не найдены
+   * @param category категория для фильтрации (опционально)
+   * @param price цена для фильтрации (опционально)
+   * @return ResponseEntity со списком продуктов
+   * @throws ResourceNotFoundException если продукты не найдены
    */
   @GetMapping
-  public List<Product> getProducts(
+  @Operation(
+          summary = "Получить продукты",
+          description = "Возвращает продукты с фильтрацией по категории и/или цене")
+  @ApiResponse(
+          responseCode = "200",
+          description = "Успешный запрос",
+          content = @Content(schema = @Schema(implementation = Product.class)))
+  @ApiResponse(
+          responseCode = "404",
+          description = "Продукты не найдены")
+  public ResponseEntity<List<Product>> getProducts(
+          @Parameter(
+                  description = "Категория продукта",
+                  example = "electronics")
           @RequestParam(value = "category", required = false) String category,
+          @Parameter(
+                  description = "Цена продукта",
+                  example = "100")
           @RequestParam(value = "price", required = false) Integer price) {
-    List<Product> filteredProducts = productService.getProducts(category, price);
-
-    if (filteredProducts.isEmpty()) {
-      throw new ResponseStatusException(HttpStatus
-              .NOT_FOUND, "No products found with the specified criteria");
+    List<Product> products = productService.getProducts(category, price);
+    if (products.isEmpty()) {
+      throw new ResourceNotFoundException("Не найдено продуктов по заданным критериям");
     }
-
-    return filteredProducts;
+    return ResponseEntity.ok(products);
   }
 
   /**
-   * Получить продукт по ID.
+   * Получает продукт по идентификатору.
    *
    * @param id идентификатор продукта
-   * @return продукт с указанным ID
-   * @throws ResponseStatusException если продукт не найден
+   * @return ResponseEntity с найденным продуктом
+   * @throws ResourceNotFoundException если продукт не найден
    */
   @GetMapping("/{id}")
-  public Product getProductById(@PathVariable Long id) {
-    return productService.getProductById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus
-                    .NOT_FOUND, "Product not found"));
+  @Operation(
+          summary = "Получить продукт по ID",
+          description = "Возвращает продукт по указанному ID")
+  @ApiResponse(
+          responseCode = "200",
+          description = "Продукт найден",
+          content = @Content(schema = @Schema(implementation = Product.class)))
+  @ApiResponse(
+          responseCode = "404",
+          description = "Продукт не найден")
+  public ResponseEntity<Product> getProductById(
+          @Parameter(
+                  description = "ID продукта",
+                  example = "1",
+                  required = true)
+          @PathVariable Long id) {
+    return ResponseEntity.ok(productService.getProductById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Продукт с ID " + id + " не найден")));
   }
 
   /**
-   * Создать новый продукт.
+   * Создает новый продукт.
    *
-   * @param product данные продукта
-   * @return созданный продукт
+   * @param product данные нового продукта
+   * @return ResponseEntity с созданным продуктом
    */
   @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  public Product createProduct(@RequestBody Product product) {
-    return productService.saveProduct(product);
+  @Operation(
+          summary = "Создать продукт",
+          description = "Создает новый продукт")
+  @ApiResponse(
+          responseCode = "201",
+          description = "Продукт создан",
+          content = @Content(schema = @Schema(implementation = Product.class)))
+  @ApiResponse(
+          responseCode = "400",
+          description = "Некорректные данные")
+  public ResponseEntity<Product> createProduct(
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                  description = "Данные продукта",
+                  required = true,
+                  content = @Content(schema = @Schema(implementation = Product.class)))
+          @Valid @RequestBody Product product) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+            .body(productService.saveProduct(product));
   }
 
   /**
-   * Обновить существующий продукт.
+   * Обновляет существующий продукт.
    *
    * @param id идентификатор продукта
    * @param product новые данные продукта
-   * @return обновленный продукт
+   * @return ResponseEntity с обновленным продуктом
    */
   @PutMapping("/{id}")
-  public Product updateProduct(@PathVariable Long id, @RequestBody Product product) {
+  @Operation(
+          summary = "Обновить продукт",
+          description = "Обновляет существующий продукт")
+  @ApiResponse(
+          responseCode = "200",
+          description = "Продукт обновлен",
+          content = @Content(schema = @Schema(implementation = Product.class)))
+  @ApiResponse(
+          responseCode = "400",
+          description = "Некорректные данные")
+  @ApiResponse(
+          responseCode = "404",
+          description = "Продукт не найден")
+  public ResponseEntity<Product> updateProduct(
+          @Parameter(
+                  description = "ID продукта",
+                  example = "1",
+                  required = true)
+          @PathVariable Long id,
+          @Valid @RequestBody Product product) {
     product.setId(id);
-    return productService.saveProduct(product);
+    return ResponseEntity.ok(productService.saveProduct(product));
   }
 
   /**
-   * Удалить продукт по ID.
+   * Удаляет продукт по идентификатору.
    *
-   * @param id идентификатор продукта
+   * @param id идентификатор удаляемого продукта
+   * @return ResponseEntity без содержимого
    */
   @DeleteMapping("/{id}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void deleteProduct(@PathVariable Long id) {
+  @Operation(
+          summary = "Удалить продукт",
+          description = "Удаляет продукт по ID")
+  @ApiResponse(
+          responseCode = "204",
+          description = "Продукт удален")
+  @ApiResponse(
+          responseCode = "404",
+          description = "Продукт не найден")
+  public ResponseEntity<Void> deleteProduct(
+          @Parameter(
+                  description = "ID продукта",
+                  example = "1",
+                  required = true)
+          @PathVariable Long id) {
     productService.deleteProduct(id);
+    return ResponseEntity.noContent().build();
   }
 }

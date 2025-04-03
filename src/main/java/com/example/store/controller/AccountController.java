@@ -1,10 +1,19 @@
 package com.example.store.controller;
 
+import com.example.store.exception.ResourceNotFoundException;
 import com.example.store.model.Account;
 import com.example.store.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,78 +21,147 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Контроллер для управления аккаунтами.
- * Предоставляет REST API для выполнения CRUD-операций с сущностью {@link Account}.
+ * Контроллер для управления учетными записями пользователей.
+ * Предоставляет REST API для выполнения операций CRUD с учетными записями.
  */
 @RestController
 @RequestMapping("/api/accounts")
 @AllArgsConstructor
+@Tag(name = "Account Controller", description = "API для управления аккаунтами")
 public class AccountController {
 
   private final AccountService accountService;
 
   /**
-   * Получить все аккаунты.
+   * Получает список всех учетных записей.
    *
-   * @return список всех аккаунтов
+   * @return ResponseEntity со списком всех учетных записей
    */
   @GetMapping
-  public List<Account> getAllAccounts() {
-    return accountService.getAccounts();
+  @Operation(
+          summary = "Получить все аккаунты",
+          description = "Возвращает список всех аккаунтов")
+  @ApiResponse(
+          responseCode = "200",
+          description = "Успешный запрос",
+          content = @Content(schema = @Schema(implementation = Account.class)))
+  public ResponseEntity<List<Account>> getAllAccounts() {
+    return ResponseEntity.ok(accountService.getAccounts());
   }
 
   /**
-   * Получить аккаунт по ID.
+   * Получает учетную запись по идентификатору.
    *
-   * @param id идентификатор аккаунта
-   * @return аккаунт с указанным ID
-   * @throws ResponseStatusException если аккаунт не найден
+   * @param id идентификатор учетной записи
+   * @return ResponseEntity с найденной учетной записью
+   * @throws ResourceNotFoundException если учетная запись не найдена
    */
   @GetMapping("/{id}")
-  public Account getAccountById(@PathVariable Long id) {
-    return accountService.getAccountById(id)
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Account not found"));
+  @Operation(
+          summary = "Получить аккаунт по ID",
+          description = "Возвращает аккаунт по указанному ID")
+  @ApiResponse(
+          responseCode = "200",
+          description = "Аккаунт найден",
+          content = @Content(schema = @Schema(implementation = Account.class)))
+  @ApiResponse(
+          responseCode = "404",
+          description = "Аккаунт не найден")
+  public ResponseEntity<Account> getAccountById(
+          @Parameter(
+                  description = "ID аккаунта",
+                  example = "1",
+                  required = true)
+          @PathVariable Long id) {
+    return ResponseEntity.ok(accountService.getAccountById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Account not found with id " + id)));
   }
 
   /**
-   * Создать новый аккаунт.
+   * Создает новую учетную запись.
    *
-   * @param account данные аккаунта
-   * @return созданный аккаунт
+   * @param account данные новой учетной записи
+   * @return ResponseEntity с созданной учетной записью
    */
   @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  public Account createAccount(@RequestBody Account account) {
-    return accountService.saveAccount(account);
+  @Operation(
+          summary = "Создать аккаунт",
+          description = "Создает новый аккаунт")
+  @ApiResponse(
+          responseCode = "201",
+          description = "Аккаунт создан",
+          content = @Content(schema = @Schema(implementation = Account.class)))
+  @ApiResponse(
+          responseCode = "400",
+          description = "Некорректные данные")
+  public ResponseEntity<Account> createAccount(
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                  description = "Данные аккаунта",
+                  required = true,
+                  content = @Content(schema = @Schema(implementation = Account.class)))
+          @Valid @RequestBody Account account) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+            .body(accountService.saveAccount(account));
   }
 
   /**
-   * Обновить существующий аккаунт.
+   * Обновляет существующую учетную запись.
    *
-   * @param id идентификатор аккаунта
-   * @param account новые данные аккаунта
-   * @return обновленный аккаунт
+   * @param id идентификатор обновляемой учетной записи
+   * @param account новые данные учетной записи
+   * @return ResponseEntity с обновленной учетной записью
    */
   @PutMapping("/{id}")
-  public Account updateAccount(@PathVariable Long id, @RequestBody Account account) {
+  @Operation(
+          summary = "Обновить аккаунт",
+          description = "Обновляет существующий аккаунт")
+  @ApiResponse(
+          responseCode = "200",
+          description = "Аккаунт обновлен",
+          content = @Content(schema = @Schema(implementation = Account.class)))
+  @ApiResponse(
+          responseCode = "400",
+          description = "Некорректные данные")
+  @ApiResponse(
+          responseCode = "404",
+          description = "Аккаунт не найден")
+  public ResponseEntity<Account> updateAccount(
+          @Parameter(
+                  description = "ID аккаунта",
+                  example = "1",
+                  required = true)
+          @PathVariable Long id,
+          @Valid @RequestBody Account account) {
     account.setId(id);
-    return accountService.saveAccount(account);
+    return ResponseEntity.ok(accountService.saveAccount(account));
   }
 
   /**
-   * Удалить аккаунт по ID.
+   * Удаляет учетную запись по идентификатору.
    *
-   * @param id идентификатор аккаунта
+   * @param id идентификатор удаляемой учетной записи
+   * @return ResponseEntity без содержимого
    */
   @DeleteMapping("/{id}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void deleteAccount(@PathVariable Long id) {
+  @Operation(
+          summary = "Удалить аккаунт",
+          description = "Удаляет аккаунт по ID")
+  @ApiResponse(
+          responseCode = "204",
+          description = "Аккаунт удален")
+  @ApiResponse(
+          responseCode = "404",
+          description = "Аккаунт не найден")
+  public ResponseEntity<Void> deleteAccount(
+          @Parameter(
+                  description = "ID аккаунта",
+                  example = "1",
+                  required = true)
+          @PathVariable Long id) {
     accountService.deleteAccount(id);
+    return ResponseEntity.noContent().build();
   }
 }

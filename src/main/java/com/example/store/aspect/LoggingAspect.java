@@ -27,27 +27,23 @@ public class LoggingAspect {
    */
   @Before("execution(* com.example.store.controller.*.*(..))")
   public void logBefore(JoinPoint joinPoint) {
-    if (logger.isInfoEnabled()) {
-      logger.info("Выполнение метода: {}", joinPoint.getSignature().toShortString());
-    }
+    logger.info("Выполнение метода: {}", joinPoint.getSignature().toShortString());
   }
 
   /**
    * Логирует успешное выполнение метода.
    *
    * @param joinPoint точка соединения, содержащая информацию о вызываемом методе
-   * @param result результат выполнения метода
+   * @param result выполнения метода
    */
   @AfterReturning(
           pointcut = "execution(* com.example.store.controller.*.*(..))",
           returning = "result")
   public void logAfterReturning(JoinPoint joinPoint, Object result) {
-    if (logger.isInfoEnabled()) {
-      logger.info(
-              "Метод {} успешно выполнен. Результат: {}",
-              joinPoint.getSignature().toShortString(),
-              result != null ? result.toString() : "null");
-    }
+    logger.info(
+            "Метод {} успешно выполнен. Результат: {}",
+            joinPoint.getSignature().toShortString(),
+            result != null ? result.toString() : "null");
   }
 
   /**
@@ -60,11 +56,9 @@ public class LoggingAspect {
           pointcut = "execution(* com.example.store.controller.*.*(..))",
           throwing = "error")
   public void logAfterThrowing(JoinPoint joinPoint, Throwable error) {
-    if (logger.isErrorEnabled()) {
-      logger.error(
-              "Ошибка в методе: {}. Сообщение: {}",
-              joinPoint.getSignature().toShortString(),
-              error.getMessage());
-    }
+    logger.error(
+            "Ошибка в методе: {}. Сообщение: {}",
+            joinPoint.getSignature().toShortString(),
+            error.getMessage());
   }
 }

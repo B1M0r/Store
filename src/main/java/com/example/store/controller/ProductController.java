@@ -183,4 +183,32 @@ public class ProductController {
     productService.deleteProduct(id);
     return ResponseEntity.noContent().build();
   }
+
+  @PostMapping("/bulk")
+  @Operation(
+          summary = "Создать несколько продуктов",
+          description = "Создает список новых продуктов"
+  )
+  @ApiResponse(
+          responseCode = "201",
+          description = "Продукты успешно созданы",
+          content = @Content(schema = @Schema(implementation = Product.class))
+  )
+  @ApiResponse(
+          responseCode = "400",
+          description = "Некорректные данные"
+  )
+  public ResponseEntity<List<Product>> createProductsBulk(
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                  description = "Список продуктов для создания",
+                  required = true,
+                  content = @Content(schema = @Schema(implementation = Product.class)))
+          @Valid @RequestBody List<Product> products) {
+
+    List<Product> savedProducts = products.stream()
+            .map(productService::saveProduct)
+            .toList();
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(savedProducts);
+  }
 }

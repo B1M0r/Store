@@ -69,7 +69,9 @@ public class AccountService {
             .orElseThrow(() -> new RuntimeException("Account not found"));
 
     // Каскадное удаление заказов
-    account.getOrders().clear(); // Удаляем все заказы, связанные с аккаунтом
+    if (account.getOrders() != null) {
+      account.getOrders().clear();
+    }
 
     accountRepository.delete(account); // Удаляем аккаунт
   }

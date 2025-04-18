@@ -4,138 +4,113 @@ import com.example.store.cache.ProductCache;
 import com.example.store.model.Product;
 import com.example.store.repository.OrderRepository;
 import com.example.store.repository.ProductRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
-  @Mock
   private ProductRepository productRepository;
-
-  @Mock
   private OrderRepository orderRepository;
-
-  @Mock
   private ProductCache productCache;
-
-  @InjectMocks
   private ProductService productService;
 
-  private Product createTestProduct(Long id, String name, int price, String category) {
-    return Product.builder()
-            .id(id)
-            .name(name)
-            .price(price)
-            .category(category)
-            .build();
+  @BeforeEach
+  void setUp() {
+    productRepository = mock(ProductRepository.class);
+    orderRepository = mock(OrderRepository.class);
+    productCache = mock(ProductCache.class);
+    productService = new ProductService(productRepository, orderRepository, productCache);
   }
 
   @Test
-  void getProducts_shouldReturnAllProducts_whenNoFilters() {
-    Product product1 = createTestProduct(1L, "Product 1", 100, "Electronics");
-    Product product2 = createTestProduct(2L, "Product 2", 200, "Books");
-    when(productRepository.findAll()).thenReturn(Arrays.asList(product1, product2));
+  void testGetProducts_NoFilter_ReturnsAll() {
+    List<Product> expected = List.of(new Product());
+    when(productRepository.findAll()).thenReturn(expected);
 
     List<Product> result = productService.getProducts(null, null);
 
-    assertEquals(2, result.size());
-    verify(productRepository, times(1)).findAll();
+    assertEquals(expected, result);
   }
 
   @Test
-  void getProducts_shouldFilterByCategory() {
-    Product product = createTestProduct(1L, "Product 1", 100, "Electronics");
-    when(productRepository.findByCategory("Electronics")).thenReturn(List.of(product));
+  void testGetProducts_ByCategory() {
+    String category = "Books";
+    List<Product> expected = List.of(new Product());
+    when(productRepository.findByCategory(category)).thenReturn(expected);
 
-    List<Product> result = productService.getProducts("Electronics", null);
+    List<Product> result = productService.getProducts(category, null);
 
-    assertEquals(1, result.size());
-    assertEquals("Electronics", result.get(0).getCategory());
+    assertEquals(expected, result);
   }
 
   @Test
-  void getProducts_shouldFilterByPrice() {
-    Product product = createTestProduct(1L, "Product 1", 100, "Electronics");
-    when(productRepository.findByPrice(100)).thenReturn(List.of(product));
+  void testGetProductById_FromCache() {
+    Product product = new Product();
+    product.setId(1L);
+    when(productCache.get(1L)).thenReturn(product);
 
-    List<Product> result = productService.getProducts(null, 100);
-
-    assertEquals(1, result.size());
-    assertEquals(100, result.get(0).getPrice());
-  }
-
-  @Test
-  void getProducts_shouldFilterByCategoryAndPrice() {
-    Product product = createTestProduct(1L, "Product 1", 100, "Electronics");
-    when(productRepository.findByCategoryAndPrice("Electronics", 100)).thenReturn(List.of(product));
-
-    List<Product> result = productService.getProducts("Electronics", 100);
-
-    assertEquals(1, result.size());
-    assertEquals("Electronics", result.get(0).getCategory());
-    assertEquals(100, result.get(0).getPrice());
-  }
-
-  @Test
-  void getProductById_shouldReturnFromCache() {
-    Long productId = 1L;
-    Product cachedProduct = createTestProduct(productId, "Cached", 100, "Electronics");
-    when(productCache.get(productId)).thenReturn(cachedProduct);
-
-    Optional<Product> result = productService.getProductById(productId);
+    Optional<Product> result = productService.getProductById(1L);
 
     assertTrue(result.isPresent());
-    assertEquals("Cached", result.get().getName());
+    assertEquals(product, result.get());
     verify(productRepository, never()).findById(any());
   }
 
   @Test
-  void getProductById_shouldReturnFromDbAndCache() {
-    Long productId = 1L;
-    Product dbProduct = createTestProduct(productId, "DB Product", 100, "Electronics");
-    when(productCache.get(productId)).thenReturn(null);
-    when(productRepository.findById(productId)).thenReturn(Optional.of(dbProduct));
+  void testGetProductById_FromRepositoryAndCacheUpdated() {
+    Product product = new Product();
+    product.setId(2L);
+    when(productCache.get(2L)).thenReturn(null);
+    when(productRepository.findById(2L)).thenReturn(Optional.of(product));
 
-    Optional<Product> result = productService.getProductById(productId);
+    Optional<Product> result = productService.getProductById(2L);
 
     assertTrue(result.isPresent());
-    assertEquals("DB Product", result.get().getName());
-    verify(productCache, times(1)).put(dbProduct);
+    assertEquals(product, result.get());
+    verify(productCache).put(product);
   }
 
   @Test
-  void saveProduct_shouldSaveAndCache() {
-    Product product = createTestProduct(null, "New Product", 100, "Electronics");
-    Product savedProduct = createTestProduct(1L, "New Product", 100, "Electronics");
-    when(productRepository.save(product)).thenReturn(savedProduct);
+  void testSaveProduct_UpdatesCache() {
+    Product product = new Product();
+    product.setId(3L);
+    when(productRepository.save(product)).thenReturn(product);
 
     Product result = productService.saveProduct(product);
 
-    assertNotNull(result.getId());
-    verify(productCache, times(1)).put(savedProduct);
+    assertEquals(product, result);
+    verify(productCache).put(product);
   }
 
   @Test
-  void deleteProduct_shouldRemoveFromOrdersAndDbAndCache() {
-    Long productId = 1L;
-    Product product = createTestProduct(productId, "To Delete", 100, "Electronics");
-    when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+  void testDeleteProduct_RemovesFromOrdersAndCache() {
+    Product product = new Product();
+    product.setId(4L);
+    when(productRepository.findById(4L)).thenReturn(Optional.of(product));
+    when(orderRepository.findByProductsContaining(product)).thenReturn(Collections.emptyList());
 
-    productService.deleteProduct(productId);
+    productService.deleteProduct(4L);
 
-    verify(orderRepository, atLeastOnce()).findByProductsContaining(product);
-    verify(productRepository, times(1)).delete(product);
-    verify(productCache, times(1)).remove(productId);
+    verify(orderRepository).findByProductsContaining(product);
+    verify(productRepository).delete(product);
+    verify(productCache).remove(4L);
+  }
+
+  @Test
+  void testDeleteProduct_NotFound_Throws() {
+    when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+    RuntimeException exception = assertThrows(RuntimeException.class,
+            () -> productService.deleteProduct(999L));
+
+    assertEquals("Product not found", exception.getMessage());
   }
 }

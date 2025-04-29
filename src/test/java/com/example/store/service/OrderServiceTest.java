@@ -1,24 +1,27 @@
 package com.example.store.service;
 
-import com.example.store.exception.ResourceNotFoundException;
 import com.example.store.model.Account;
 import com.example.store.model.Order;
 import com.example.store.model.Product;
 import com.example.store.repository.AccountRepository;
 import com.example.store.repository.OrderRepository;
 import com.example.store.repository.ProductRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -35,122 +38,187 @@ class OrderServiceTest {
   @InjectMocks
   private OrderService orderService;
 
-  private Order testOrder;
-  private Account testAccount;
-  private Product testProduct;
-
-  @BeforeEach
-  void setup() {
-    testAccount = new Account();
-    testAccount.setId(1L);
-
-    testProduct = new Product();
-    testProduct.setId(1L);
-
-    testOrder = Order.builder()
-            .id(1L)
+  private Order createTestOrder(Long id, Account account, List<Product> products) {
+    return Order.builder()
+            .id(id)
             .orderDate(LocalDateTime.now())
             .totalPrice(100.0)
-            .account(testAccount)
-            .productIds(List.of(1L))
-            .products(List.of(testProduct))
+            .account(account)
+            .products(products)
+            .productIds(products.stream().map(Product::getId).toList())
             .build();
   }
 
-  @Test
-  void testGetAllOrders() {
-    when(orderRepository.findAll()).thenReturn(List.of(testOrder));
+  private Account createTestAccount(Long id) {
+    return Account.builder().id(id).build();
+  }
 
-    List<Order> orders = orderService.getAllOrders();
-
-    assertThat(orders).hasSize(1);
-    assertThat(orders.get(0).getId()).isEqualTo(testOrder.getId());
+  private Product createTestProduct(Long id) {
+    return Product.builder().id(id).build();
   }
 
   @Test
-  void testGetOrderById_Found() {
-    when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+  void getAllOrders_shouldReturnAllOrders() {
+    Order order1 = createTestOrder(1L, createTestAccount(1L), List.of(createTestProduct(1L)));
+    Order order2 = createTestOrder(2L, createTestAccount(2L), List.of(createTestProduct(2L)));
+    when(orderRepository.findAll()).thenReturn(Arrays.asList(order1, order2));
 
-    Order result = orderService.getOrderById(1L);
+    List<Order> result = orderService.getAllOrders();
 
-    assertThat(result).isEqualTo(testOrder);
+    assertEquals(2, result.size());
+    verify(orderRepository, times(1)).findAll();
   }
 
   @Test
-  void testGetOrderById_NotFound() {
-    when(orderRepository.findById(1L)).thenReturn(Optional.empty());
+  void getOrderById_shouldReturnOrder_whenExists() {
+    Long orderId = 1L;
+    Order mockOrder = createTestOrder(orderId, createTestAccount(1L), List.of(createTestProduct(1L)));
+    when(orderRepository.findById(orderId)).thenReturn(Optional.of(mockOrder));
 
-    assertThatThrownBy(() -> orderService.getOrderById(1L))
-            .isInstanceOf(ResourceNotFoundException.class);
+    Order result = orderService.getOrderById(orderId);
+
+    assertEquals(orderId, result.getId());
+    verify(orderRepository, times(1)).findById(orderId);
   }
 
   @Test
-  void testCreateOrder_Success() {
-    when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
-    when(productRepository.findAllById(List.of(1L))).thenReturn(List.of(testProduct));
-    when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
+  void getOrderById_shouldThrowException_whenNotExists() {
+    Long orderId = 99L;
+    when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
 
-    Order createdOrder = orderService.createOrder(testOrder);
-
-    assertThat(createdOrder).isEqualTo(testOrder);
-    verify(orderRepository, times(1)).save(any(Order.class));
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> orderService.getOrderById(orderId));
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
   }
 
   @Test
-  void testUpdateOrder_Success() {
-    Order updated = testOrder;
-    updated.setTotalPrice(200.0);
+  void getOrdersByAccountId_shouldReturnOrdersForAccount() {
+    Long accountId = 1L;
+    Order order1 = createTestOrder(1L, createTestAccount(accountId), List.of(createTestProduct(1L)));
+    Order order2 = createTestOrder(2L, createTestAccount(accountId), List.of(createTestProduct(2L)));
+    when(orderRepository.findByAccountId(accountId)).thenReturn(List.of(order1, order2));
 
-    when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
-    when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
-    when(productRepository.findAllById(List.of(1L))).thenReturn(List.of(testProduct));
-    when(orderRepository.save(any(Order.class))).thenReturn(updated);
+    List<Order> result = orderService.getOrdersByAccountId(accountId);
 
-    Order result = orderService.updateOrder(1L, updated);
-
-    assertThat(result.getTotalPrice()).isEqualTo(200.0);
+    assertEquals(2, result.size());
+    verify(orderRepository, times(1)).findByAccountId(accountId);
   }
 
   @Test
-  void testUpdateOrder_NotFound() {
-    when(orderRepository.findById(1L)).thenReturn(Optional.empty());
+  void getOrdersByProductCategoryJpql_shouldThrowException_whenNoOrdersFound() {
+    String category = "nonexistent";
+    when(orderRepository.findOrdersByProductCategoryJpql(category)).thenReturn(Collections.emptyList());
 
-    assertThatThrownBy(() -> orderService.updateOrder(1L, testOrder))
-            .isInstanceOf(ResourceNotFoundException.class);
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> orderService.getOrdersByProductCategoryJpql(category));
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
   }
 
   @Test
-  void testDeleteOrder() {
-    when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+  void getOrdersByProductPriceNative_shouldThrowException_whenNoOrdersFound() {
+    Integer price = 9999;
+    when(orderRepository.findOrdersByProductPriceNative(price)).thenReturn(Collections.emptyList());
 
-    orderService.deleteOrder(1L);
-
-    verify(orderRepository, times(1)).delete(testOrder);
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> orderService.getOrdersByProductPriceNative(price));
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
   }
 
   @Test
-  void testDeleteOrder_NotFound() {
-    when(orderRepository.findById(1L)).thenReturn(Optional.empty());
+  void createOrder_shouldSuccess_whenValidData() {
+    Account account = createTestAccount(1L);
+    Product product = createTestProduct(1L);
+    Order newOrder = createTestOrder(null, account, List.of(product));
 
-    assertThatThrownBy(() -> orderService.deleteOrder(1L))
-            .isInstanceOf(ResourceNotFoundException.class);
+    when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+    when(productRepository.findAllById(List.of(1L))).thenReturn(List.of(product));
+    when(orderRepository.save(newOrder)).thenReturn(newOrder);
+
+    Order result = orderService.createOrder(newOrder);
+
+    assertNotNull(result);
+    verify(orderRepository, times(1)).save(newOrder);
   }
 
   @Test
-  void testGetOrdersByCategoryJpql() {
-    when(orderRepository.findOrdersByProductCategoryJpql("books")).thenReturn(List.of(testOrder));
+  void createOrder_shouldThrowException_whenAccountNotFound() {
+    Order newOrder = createTestOrder(null, createTestAccount(99L), List.of(createTestProduct(1L)));
+    when(accountRepository.findById(99L)).thenReturn(Optional.empty());
 
-    List<Order> result = orderService.getOrdersByProductCategoryJpql("books");
-
-    assertThat(result).containsExactly(testOrder);
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> orderService.createOrder(newOrder));
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
   }
 
   @Test
-  void testGetOrdersByPriceNative() {
-    when(orderRepository.findOrdersByProductPriceNative(50)).thenReturn(List.of(testOrder));
+  void createOrder_shouldThrowException_whenProductsNotFound() {
+    Account account = createTestAccount(1L);
+    Order newOrder = createTestOrder(null, account, List.of(createTestProduct(1L)));
+    newOrder.setProductIds(List.of(1L, 2L)); // Указываем 2 продукта, но найдем только 1
 
-    List<Order> result = orderService.getOrdersByProductPriceNative(50);
+    when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+    when(productRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(createTestProduct(1L)));
 
-    assertThat(result).containsExactly(testOrder);
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> orderService.createOrder(newOrder));
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+  }
+
+  @Test
+  void createOrder_shouldThrowException_whenAccountIdNotProvided() {
+    Order newOrder = new Order();
+    newOrder.setAccount(null);
+
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> orderService.createOrder(newOrder));
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+  }
+
+  @Test
+  void updateOrder_shouldSuccess_whenValidData() {
+    Long orderId = 1L;
+    Product product = createTestProduct(1L);
+    Order existingOrder = createTestOrder(orderId, createTestAccount(1L), List.of(product));
+
+    when(productRepository.findAllById(List.of(1L))).thenReturn(List.of(product));
+    when(orderRepository.save(existingOrder)).thenReturn(existingOrder);
+
+    Order result = orderService.updateOrder(orderId, existingOrder);
+
+    assertEquals(orderId, result.getId());
+    verify(orderRepository, times(1)).save(existingOrder);
+  }
+
+  @Test
+  void deleteOrder_shouldCallRepository() {
+    Long orderId = 1L;
+    doNothing().when(orderRepository).deleteById(orderId);
+
+    assertDoesNotThrow(() -> orderService.deleteOrder(orderId));
+    verify(orderRepository, times(1)).deleteById(orderId);
+  }
+
+  @Test
+  void getOrdersByProductCategoryJpql_shouldReturnOrders() {
+    String category = "electronics";
+    Order order = createTestOrder(1L, createTestAccount(1L), List.of(createTestProduct(1L)));
+    when(orderRepository.findOrdersByProductCategoryJpql(category)).thenReturn(List.of(order));
+
+    List<Order> result = orderService.getOrdersByProductCategoryJpql(category);
+
+    assertEquals(1, result.size());
+    verify(orderRepository, times(1)).findOrdersByProductCategoryJpql(category);
+  }
+
+  @Test
+  void getOrdersByProductPriceNative_shouldReturnOrders() {
+    Integer price = 100;
+    Order order = createTestOrder(1L, createTestAccount(1L), List.of(createTestProduct(1L)));
+    when(orderRepository.findOrdersByProductPriceNative(price)).thenReturn(List.of(order));
+
+    List<Order> result = orderService.getOrdersByProductPriceNative(price);
+
+    assertEquals(1, result.size());
+    verify(orderRepository, times(1)).findOrdersByProductPriceNative(price);
   }
 }

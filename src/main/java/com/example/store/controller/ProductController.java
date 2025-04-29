@@ -184,6 +184,12 @@ public class ProductController {
     return ResponseEntity.noContent().build();
   }
 
+  /**
+   * Создает несколько новых продуктов.
+   *
+   * @param products данные новых продуктов
+   * @return ResponseEntity с созданными продуктами
+   */
   @PostMapping("/bulk")
   @Operation(
           summary = "Создать несколько продуктов",

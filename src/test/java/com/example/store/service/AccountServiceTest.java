@@ -2,15 +2,21 @@ package com.example.store.service;
 
 import com.example.store.model.Account;
 import com.example.store.repository.AccountRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
-import java.util.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class AccountServiceTest {
+@ExtendWith(MockitoExtension.class)
+class AccountServiceTest {
 
   @Mock
   private AccountRepository accountRepository;
@@ -18,92 +24,98 @@ public class AccountServiceTest {
   @InjectMocks
   private AccountService accountService;
 
-  private AutoCloseable closeable;
-
-  private Account mockAccount;
-
-  @BeforeEach
-  void setUp() {
-    closeable = MockitoAnnotations.openMocks(this);
-
-    mockAccount = Account.builder()
-            .id(1L)
-            .nickname("testuser")
-            .firstName("Test")
-            .lastName("User")
-            .email("test@example.com")
+  private Account createTestAccount(Long id, String nickname, String firstName, String lastName, String email) {
+    return Account.builder()
+            .id(id)
+            .nickname(nickname)
+            .firstName(firstName)
+            .lastName(lastName)
+            .email(email)
             .build();
   }
 
   @Test
-  void testGetAccounts() {
-    List<Account> accounts = List.of(mockAccount);
-    when(accountRepository.findAll()).thenReturn(accounts);
+  void getAccounts_shouldReturnAllAccounts() {
+    Account account1 = createTestAccount(1L, "user1", "John", "Doe", "john@test.com");
+    Account account2 = createTestAccount(2L, "user2", "Jane", "Smith", "jane@test.com");
+    when(accountRepository.findAll()).thenReturn(Arrays.asList(account1, account2));
 
     List<Account> result = accountService.getAccounts();
 
-    assertEquals(1, result.size());
-    assertEquals("testuser", result.get(0).getNickname());
+    assertEquals(2, result.size());
+    assertEquals("user1", result.get(0).getNickname());
+    verify(accountRepository, times(1)).findAll();
   }
 
   @Test
-  void testGetAccountById_found() {
-    when(accountRepository.findById(1L)).thenReturn(Optional.of(mockAccount));
+  void getAccountById_shouldReturnAccountWhenExists() {
+    Long accountId = 1L;
+    Account mockAccount = createTestAccount(accountId, "test", "Test", "User", "test@test.com");
+    when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
 
-    Optional<Account> result = accountService.getAccountById(1L);
+    Optional<Account> result = accountService.getAccountById(accountId);
 
     assertTrue(result.isPresent());
-    assertEquals("testuser", result.get().getNickname());
+    assertEquals(accountId, result.get().getId());
   }
 
   @Test
-  void testGetAccountById_notFound() {
-    when(accountRepository.findById(1L)).thenReturn(Optional.empty());
+  void getAccountById_shouldReturnEmptyWhenNotExists() {
+    when(accountRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-    Optional<Account> result = accountService.getAccountById(1L);
+    Optional<Account> result = accountService.getAccountById(99L);
 
-    assertFalse(result.isPresent());
+    assertTrue(result.isEmpty());
   }
 
   @Test
-  void testSaveAccount() {
-    when(accountRepository.save(mockAccount)).thenReturn(mockAccount);
+  void getAccountByNickname_shouldReturnAccountWhenExists() {
+    String nickname = "testUser";
+    Account mockAccount = createTestAccount(1L, nickname, "Test", "User", "test@test.com");
+    when(accountRepository.findByNickname(nickname)).thenReturn(Optional.of(mockAccount));
 
-    Account saved = accountService.saveAccount(mockAccount);
+    Optional<Account> result = accountService.getAccountByNickname(nickname);
 
-    assertNotNull(saved);
-    assertEquals("testuser", saved.getNickname());
+    assertTrue(result.isPresent());
+    assertEquals(nickname, result.get().getNickname());
   }
 
   @Test
-  void testDeleteAccount_success() {
-    when(accountRepository.findById(1L)).thenReturn(Optional.of(mockAccount));
+  void getAccountByNickname_shouldReturnEmptyWhenNotExists() {
+    when(accountRepository.findByNickname(anyString())).thenReturn(Optional.empty());
 
-    // simulate clearing orders
-    mockAccount.setOrders(new ArrayList<>());
+    Optional<Account> result = accountService.getAccountByNickname("nonExisting");
 
-    accountService.deleteAccount(1L);
+    assertTrue(result.isEmpty());
+  }
 
+  @Test
+  void saveAccount_shouldReturnSavedAccount() {
+    Account newAccount = createTestAccount(null, "new", "New", "User", "new@test.com");
+    Account savedAccount = createTestAccount(1L, "new", "New", "User", "new@test.com");
+    when(accountRepository.save(newAccount)).thenReturn(savedAccount);
+
+    Account result = accountService.saveAccount(newAccount);
+
+    assertNotNull(result.getId());
+    assertEquals(savedAccount.getNickname(), result.getNickname());
+  }
+
+  @Test
+  void deleteAccount_shouldDeleteWhenAccountExists() {
+    Long accountId = 1L;
+    Account mockAccount = createTestAccount(accountId, "test", "Test", "User", "test@test.com");
+    when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
+
+    assertDoesNotThrow(() -> accountService.deleteAccount(accountId));
     verify(accountRepository, times(1)).delete(mockAccount);
   }
 
   @Test
-  void testDeleteAccount_notFound() {
-    when(accountRepository.findById(1L)).thenReturn(Optional.empty());
+  void deleteAccount_shouldThrowExceptionWhenAccountNotExists() {
+    when(accountRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-    RuntimeException exception = assertThrows(RuntimeException.class,
-            () -> accountService.deleteAccount(1L));
-
-    assertEquals("Account not found", exception.getMessage());
-  }
-
-  @Test
-  void testGetAccountByNickname() {
-    when(accountRepository.findByNickname("testuser")).thenReturn(Optional.of(mockAccount));
-
-    Optional<Account> result = accountService.getAccountByNickname("testuser");
-
-    assertTrue(result.isPresent());
-    assertEquals("test@example.com", result.get().getEmail());
+    assertThrows(RuntimeException.class, () -> accountService.deleteAccount(99L));
+    verify(accountRepository, never()).delete(any());
   }
 }

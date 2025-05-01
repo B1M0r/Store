@@ -95,6 +95,6 @@ public class ProductService {
     });
 
     productRepository.delete(product);
-    productCache.remove(id); // Удаляем из кэша
+    productCache.remove(id);
   }
 }

@@ -1,6 +1,7 @@
 package com.example.store.service;
 
 import com.example.store.model.Account;
+import com.example.store.model.Order;
 import com.example.store.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -118,4 +120,21 @@ class AccountServiceTest {
     assertThrows(RuntimeException.class, () -> accountService.deleteAccount(99L));
     verify(accountRepository, never()).delete(any());
   }
+
+  @Test
+  void deleteAccount_shouldClearOrdersBeforeDelete() {
+    Long accountId = 2L;
+    Account mockAccount = createTestAccount(accountId, "test2", "Test2", "User2", "test2@test.com");
+
+    Order mockOrder = new Order();
+    mockAccount.setOrders(new ArrayList<>(List.of(mockOrder)));
+
+    when(accountRepository.findById(accountId)).thenReturn(Optional.of(mockAccount));
+
+    assertDoesNotThrow(() -> accountService.deleteAccount(accountId));
+
+    assertTrue(mockAccount.getOrders().isEmpty(), "Orders should be cleared before deletion");
+    verify(accountRepository).delete(mockAccount);
+  }
+
 }

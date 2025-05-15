@@ -190,7 +190,7 @@ public class ProductController {
    * @param products данные новых продуктов
    * @return ResponseEntity с созданными продуктами
    */
-  @PostMapping("/bulk")
+  @PostMapping("/create-several-products")
   @Operation(
           summary = "Создать несколько продуктов",
           description = "Создает список новых продуктов"

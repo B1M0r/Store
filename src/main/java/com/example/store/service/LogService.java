@@ -46,22 +46,25 @@ public class LogService {
     LogTask task = new LogTask(taskId, "IN_PROGRESS", date, LocalDateTime.now());
     tasks.put(taskId, task);
 
-    try {
-      Files.createDirectories(Paths.get(LOG_DIR));
-      String fileName = LOG_DIR + "log-" + date + "-" + System.currentTimeMillis() + ".log";
+    new Thread(() -> {
+      try {
+        Thread.sleep(20000);
+        Files.createDirectories(Paths.get(LOG_DIR));
+        String fileName = LOG_DIR + "log-" + date + "-" + System.currentTimeMillis() + ".log";
 
-      try (var lines = Files.lines(Paths.get(SOURCE_LOG_PATH))) {
-        Files.write(
-                Paths.get(fileName),
-                lines.filter(line -> line.contains(date)).collect(Collectors.toList()));
+        try (var lines = Files.lines(Paths.get(SOURCE_LOG_PATH))) {
+          Files.write(
+                  Paths.get(fileName),
+                  lines.filter(line -> line.contains(date)).collect(Collectors.toList()));
+        }
+
+        task.setStatus("COMPLETED");
+        task.setFilePath(fileName);
+      } catch (Exception e) {
+        task.setStatus("FAILED");
+        task.setErrorMessage(e.getMessage());
       }
-
-      task.setStatus("COMPLETED");
-      task.setFilePath(fileName);
-    } catch (Exception e) {
-      task.setStatus("FAILED");
-      task.setErrorMessage(e.getMessage());
-    }
+    }).start();
 
     return CompletableFuture.completedFuture(taskId);
   }

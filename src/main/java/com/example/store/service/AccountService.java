@@ -75,4 +75,18 @@ public class AccountService {
 
     accountRepository.delete(account); // Удаляем аккаунт
   }
+
+  @Transactional
+  public Account updateAccount(Long id, Account updatedAccount) {
+    Account existingAccount = accountRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Account not found"));
+
+    // Копируем только нужные поля (игнорируем заказы)
+    existingAccount.setNickname(updatedAccount.getNickname());
+    existingAccount.setFirstName(updatedAccount.getFirstName());
+    existingAccount.setLastName(updatedAccount.getLastName());
+    existingAccount.setEmail(updatedAccount.getEmail());
+
+    return accountRepository.save(existingAccount); // Заказы останутся нетронутыми
+  }
 }

@@ -27,24 +27,7 @@ public class VisitCounterService {
    * @throws IllegalArgumentException если url равен null
    */
   public void incrementCounter(String url) {
-    if (url == null) {
-      throw new IllegalArgumentException("URL не может быть null");
-    }
     urlCounters.computeIfAbsent(url, k -> new AtomicLong(0)).incrementAndGet();
-  }
-
-  /**
-   * Возвращает количество посещений для указанного URL.
-   *
-   * @param url URL для проверки
-   * @return количество посещений (0 если URL не встречался)
-   * @throws IllegalArgumentException если url равен null
-   */
-  public long getCount(String url) {
-    if (url == null) {
-      throw new IllegalArgumentException("URL не может быть null");
-    }
-    return urlCounters.getOrDefault(url, new AtomicLong(0)).get();
   }
 
   /**

@@ -24,9 +24,6 @@ public class VisitController {
    * @throws IllegalArgumentException если visitCounterService равен null
    */
   public VisitController(VisitCounterService visitCounterService) {
-    if (visitCounterService == null) {
-      throw new IllegalArgumentException("VisitCounterService не может быть null");
-    }
     this.visitCounterService = visitCounterService;
   }
 

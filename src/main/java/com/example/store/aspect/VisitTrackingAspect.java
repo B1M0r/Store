@@ -27,8 +27,7 @@ public class VisitTrackingAspect {
    * Увеличивает счетчик общих посещений для методов контроллеров.
    * Срабатывает перед выполнением методов с аннотацией @RequestMapping.
    */
-  @Before("execution(* com.example.store.controller.*.*(..))"
-          + " && @annotation(org.springframework.web.bind.annotation.RequestMapping)")
+  @Before("execution(* com.example.store.controller.*.*(..))")
   public void trackVisit() {
     visitCounterService.incrementCounter("general");
   }

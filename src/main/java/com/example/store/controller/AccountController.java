@@ -14,6 +14,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/accounts")
 @AllArgsConstructor
 @Tag(name = "Account Controller", description = "API для управления аккаунтами")
+@CrossOrigin(origins = "http://localhost:8080")
 public class AccountController {
 
   private final AccountService accountService;
@@ -48,6 +50,7 @@ public class AccountController {
           responseCode = "200",
           description = "Успешный запрос",
           content = @Content(schema = @Schema(implementation = Account.class)))
+  @CrossOrigin(origins = "http://localhost:8080")
   public ResponseEntity<List<Account>> getAllAccounts() {
     return ResponseEntity.ok(accountService.getAccounts());
   }
@@ -70,6 +73,7 @@ public class AccountController {
   @ApiResponse(
           responseCode = "404",
           description = "Аккаунт не найден")
+  @CrossOrigin(origins = "http://localhost:8080")
   public ResponseEntity<Account> getAccountById(
           @Parameter(
                   description = "ID аккаунта",
@@ -97,6 +101,7 @@ public class AccountController {
   @ApiResponse(
           responseCode = "400",
           description = "Некорректные данные")
+  @CrossOrigin(origins = "http://localhost:8080")
   public ResponseEntity<Account> createAccount(
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
                   description = "Данные аккаунта",
@@ -128,16 +133,13 @@ public class AccountController {
   @ApiResponse(
           responseCode = "404",
           description = "Аккаунт не найден")
+  @CrossOrigin(origins = "http://localhost:8080")
   public ResponseEntity<Account> updateAccount(
-          @Parameter(
-                  description = "ID аккаунта",
-                  example = "1",
-                  required = true)
           @PathVariable Long id,
           @Valid @RequestBody Account account) {
-    account.setId(id);
-    return ResponseEntity.ok(accountService.saveAccount(account));
+    return ResponseEntity.ok(accountService.updateAccount(id, account));
   }
+
 
   /**
    * Удаляет учетную запись по идентификатору.
@@ -155,6 +157,7 @@ public class AccountController {
   @ApiResponse(
           responseCode = "404",
           description = "Аккаунт не найден")
+  @CrossOrigin(origins = "http://localhost:8080")
   public ResponseEntity<Void> deleteAccount(
           @Parameter(
                   description = "ID аккаунта",

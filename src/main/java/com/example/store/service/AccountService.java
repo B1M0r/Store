@@ -76,6 +76,16 @@ public class AccountService {
     accountRepository.delete(account); // Удаляем аккаунт
   }
 
+  /**
+   * Обновляет данные существующего аккаунта.
+   * Находит аккаунт по ID и обновляет его основные поля (никнейм, имя, фамилию, email).
+   * Заказы аккаунта остаются неизменными.
+   *
+   * @param id идентификатор обновляемого аккаунта
+   * @param updatedAccount объект с новыми данными аккаунта
+   * @return обновленный аккаунт
+   * @throws RuntimeException если аккаунт с указанным ID не найден
+   */
   @Transactional
   public Account updateAccount(Long id, Account updatedAccount) {
     Account existingAccount = accountRepository.findById(id)
@@ -87,6 +97,6 @@ public class AccountService {
     existingAccount.setLastName(updatedAccount.getLastName());
     existingAccount.setEmail(updatedAccount.getEmail());
 
-    return accountRepository.save(existingAccount); // Заказы останутся нетронутыми
+    return accountRepository.save(existingAccount);
   }
 }

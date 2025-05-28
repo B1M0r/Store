@@ -14,6 +14,9 @@ const Layout = () => {
                     </Link>
 
                     <nav className="flex items-center space-x-6">
+                        <Link to="/products" className="flex items-center space-x-1 hover:text-blue-200">
+                            <span className="text-lg">Товары</span>
+                        </Link>
                         <Link to="/orders" className="flex items-center space-x-1 hover:text-blue-200">
                             <ShoppingCart className="h-5 w-5" />
                             <span className="text-lg">Заказы</span>
